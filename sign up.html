@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+:root{
+    --main-color:#ff9f0d;
+    --bg-color:#111;
+    --text-color:#fff;
+    --border-color:#777;
+}
+
+body{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #111;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Floating Images */
+.floating-img{
+    position: absolute;
+    width: 380px;
+    z-index: 10;
+    animation: float 6s infinite ease-in-out;
+}
+
+.img1{
+    top: 50%;
+    left: 50%;
+    transform: translate(-195%, -180%); 
+}
+
+.img2{
+    bottom: 40%;
+    right: 50%;
+    transform: translate(195%, 180%);
+}
+
+@keyframes float {
+    0%{ transform: translateY(0px); }
+    50%{ transform: translateY(-15px); }
+    100%{ transform: translateY(0px); }
+}
+
+/* FORM */
+form{
+    width: 420px;
+    background: rgba(20, 20, 20, 0.7);
+    border: 1px solid #666;
+    padding: 35px;
+    border-radius: 20px;
+    backdrop-filter: blur(6px);
+    z-index: 20;
+}
+
+h2{
+    color: var(--main-color);
+    margin-bottom: 20px;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* INPUT BOXES */
+.input-box{
+    border: 1px solid var(--border-color);
+    height: 45px;
+    border-radius: 30px;
+    margin-bottom: 15px;
+    padding: 0px 15px;
+    display: flex;
+    align-items: center;
+}
+
+.input-box i{
+    color: var(--main-color);
+    margin-right: 10px;
+}
+
+input{
+    width: 100%;
+    border: none;
+    outline: none;
+    background: none;
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+/* LINKS */
+.links{
+    text-align: center;
+    margin: 10px 0;
+}
+
+.links a{
+    color: var(--main-color);
+    font-size: 13px;
+}
+
+/* BUTTON */
+button{
+    width: 100%;
+    height: 45px;
+    background: #333;
+    border: none;
+    border-radius: 30px;
+    color: var(--main-color);
+    font-weight: 700;
+    font-size: 17px;
+    cursor: pointer;
+    transition: .3s ease;
+}
+
+button:hover{
+    background: var(--main-color);
+    color: var(--text-color);
+    box-shadow: 0px 0px 20px var(--main-color);
+    transform: scale(1.05);
+}
+</style>
+</head>
+
+<body>
+
+    <!-- Floating Images -->
+    <img src="/images/sekh_kabak-removebg-preview.png" class="floating-img img1">
+    <img src="/images/pizza-removebg-preview.png" class="floating-img img2">
+
+    <form action="login.html" id="password">
+        <h2>Create Account</h2>
+
+        <div class="input-box">
+            <i class='bx bx-user'></i>
+            <input type="text" placeholder="Enter Name">
+        </div>
+
+        <div class="input-box">
+            <i class='bx bxl-gmail'></i>
+            <input type="email" placeholder="Enter Email">
+        </div>
+
+        <div class="input-box">
+            <i class='bx bx-lock-alt'></i>
+            <input type="password" id="newPass" placeholder="Enter Password">
+        </div>
+         <div class="input-box">
+            <i class='bx bx-lock-alt'></i>
+            <input type="password" id="confirmPass" placeholder="Conform Password">
+        </div>
+        <div class="links">
+            <a href="login.html">Login Instead</a>
+        </div>
+
+        <button onclick="checkpassword()">Create Account</button>
+        <p id="error" style="color:red; font-size:14px;text-align: center; margin-top: 7px;"></p>
+    </form>
+
+     <script>
+    document.getElementById("password").addEventListener("submit", function(event) {
+    let pass1 = document.getElementById("newPass").value;
+    let pass2 = document.getElementById("confirmPass").value;
+
+    if (pass1 !== pass2) {
+        event.preventDefault();  // ❌ stop form from submitting
+        document.getElementById("error").innerText = "Passwords do not match!";
+    }
+});
+</script>
+</body>
+</html>
