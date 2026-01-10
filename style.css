@@ -243,6 +243,10 @@ header.sticky{
     padding: 10px 35px 40px;
     background: var(--other-color);
     border-radius: 3rem;
+    transition: all .50s ease;
+}
+.row:hover{
+    transform: translateY(-1rem);
 }
 .row img{
     width: 100%;
