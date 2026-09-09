@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Admin - Menu & Product Dashboard</title>
+    
+    <!-- CSS Dependencies & Fonts -->
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="admin-header">
+        <a href="admin.html" class="admin-logo">
+            <i class='bx bx-bowl-hot'></i>
+            Hotel <span>Admin</span>
+        </a>
+
+        <div class="header-right">
+            <a href="index.html" class="btn-visit-site" title="Go to Main Website">
+                <i class='bx bx-store-alt'></i>
+                <span>View Main Website</span>
+            </a>
+
+            <div class="admin-profile">
+                <div class="avatar">A</div>
+                <div class="profile-info">
+                    <h4>Admin Manager</h4>
+                    <p>Super Administrator</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Body -->
+    <main class="admin-container">
+        
+        <!-- Page Title -->
+        <div class="dashboard-heading">
+            <div>
+                <h1>Menu <span>Management</span></h1>
+                <p>Add, edit, or remove menu items displayed live on the main website.</p>
+            </div>
+        </div>
+
+        <!-- Statistics Overview Widgets -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><i class='bx bx-restaurant'></i></div>
+                <div class="stat-details">
+                    <h3 id="stat-total-items">0</h3>
+                    <p>Total Items</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class='bx bx-check-circle'></i></div>
+                <div class="stat-details">
+                    <h3 id="stat-instock-items">0</h3>
+                    <p>In Stock & Available</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class='bx bx-category'></i></div>
+                <div class="stat-details">
+                    <h3 id="stat-categories">0</h3>
+                    <p>Active Categories</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class='bx bx-star'></i></div>
+                <div class="stat-details">
+                    <h3 id="stat-featured">0</h3>
+                    <p>Featured Special Items</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls Toolbar (Search, Filter, View Toggles, Add Button) -->
+        <section class="controls-card">
+            <div class="search-filter-box">
+                <div class="search-input-wrapper">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="search-input" placeholder="Search menu items by title or category...">
+                </div>
+
+                <select id="category-filter" class="select-filter">
+                    <option value="ALL">All Categories</option>
+                    <option value="Fast Food">Fast Food</option>
+                    <option value="Pizza">Pizza</option>
+                    <option value="Grill">Grill</option>
+                    <option value="Drinks">Drinks</option>
+                    <option value="Desserts">Desserts</option>
+                </select>
+            </div>
+
+            <div class="action-buttons-group">
+                <div class="view-toggle-btns">
+                    <button class="view-btn active" id="view-grid-btn" title="Grid View"><i class='bx bx-grid-alt'></i></button>
+                    <button class="view-btn" id="view-table-btn" title="Table View"><i class='bx bx-list-ul'></i></button>
+                </div>
+
+                <button class="btn-secondary" id="reset-defaults-btn" title="Restore sample menu items">
+                    <i class='bx bx-refresh'></i> Reset Defaults
+                </button>
+
+                <button class="btn-primary" id="open-add-modal-btn">
+                    <i class='bx bx-plus-circle'></i> Add New Item
+                </button>
+            </div>
+        </section>
+
+        <!-- Dynamic Items Container -->
+        <section id="items-container">
+            <!-- Items Grid View -->
+            <div class="items-grid" id="items-grid"></div>
+
+            <!-- Items Table View (Hidden by default) -->
+            <div class="table-responsive" id="items-table-wrapper" style="display: none;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Featured</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-table-body"></tbody>
+                </table>
+            </div>
+
+            <!-- Empty State Notice -->
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <i class='bx bx-ghost'></i>
+                <h3>No Items Found</h3>
+                <p>No menu items match your search or filter. Try clearing filters or add a new item.</p>
+                <button class="btn-primary" id="empty-add-btn"><i class='bx bx-plus-circle'></i> Add First Item</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Add / Edit Menu Item -->
+    <div class="modal-overlay" id="item-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title"><i class='bx bx-plus-circle'></i> Add New Item</h2>
+                <button class="close-modal-btn" id="close-modal-btn">&times;</button>
+            </div>
+
+            <form id="item-form">
+                <input type="hidden" id="item-id">
+
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="item-name">Item Name *</label>
+                        <input type="text" id="item-name" placeholder="e.g. Double Beef Cheeseburger" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="item-category">Category *</label>
+                        <select id="item-category" required>
+                            <option value="Fast Food">Fast Food</option>
+                            <option value="Pizza">Pizza</option>
+                            <option value="Grill">Grill</option>
+                            <option value="Drinks">Drinks</option>
+                            <option value="Desserts">Desserts</option>
+                            <option value="Special">Chef Special</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="item-price">Price ($ USD) *</label>
+                        <input type="number" id="item-price" step="0.01" min="0" placeholder="e.g. 12.99" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="item-image">Image URL or Select Preset</label>
+                        <input type="text" id="item-image" placeholder="images/burger-removebg-preview.png">
+                        
+                        <div class="image-presets">
+                            <img src="images/burger-removebg-preview.png" class="preset-thumb" data-url="images/burger-removebg-preview.png" title="Burger">
+                            <img src="images/pizza-removebg-preview.png" class="preset-thumb" data-url="images/pizza-removebg-preview.png" title="Pizza">
+                            <img src="images/sekh_kabak-removebg-preview.png" class="preset-thumb" data-url="images/sekh_kabak-removebg-preview.png" title="Sekh Kabab">
+                            <img src="images/shawarma-removebg-preview.png" class="preset-thumb" data-url="images/shawarma-removebg-preview.png" title="Shawarma">
+                            <img src="images/fast-food.png" class="preset-thumb" data-url="images/fast-food.png" title="Fast Food Combo">
+                            <img src="images/burger.webp" class="preset-thumb" data-url="images/burger.webp" title="Classic Burger">
+                        </div>
+
+                        <div class="image-preview-box">
+                            <img id="image-preview" src="images/burger-removebg-preview.png" alt="Preview">
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="item-description">Description</label>
+                        <textarea id="item-description" rows="3" placeholder="Brief description of ingredients, flavor, or serving size..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-group">
+                            <input type="checkbox" id="item-available" checked>
+                            <span>Available in Stock</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-group">
+                            <input type="checkbox" id="item-featured">
+                            <span>Feature on Homepage</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancel-modal-btn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="save-item-btn"><i class='bx bx-check'></i> Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm Delete -->
+    <div class="modal-overlay" id="delete-modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center;">
+            <div style="font-size: 50px; color: #e74c3c; margin-bottom: 15px;"><i class='bx bx-trash'></i></div>
+            <h2 style="margin-bottom: 10px; color: var(--text-color);">Remove Item?</h2>
+            <p style="color: var(--second-color); margin-bottom: 25px;">Are you sure you want to remove <strong id="delete-item-name" style="color: var(--main-color);">this item</strong> from the website?</p>
+            
+            <div style="display: flex; justify-content: center; gap: 15px;">
+                <button class="btn-secondary" id="cancel-delete-btn">Cancel</button>
+                <button class="btn-primary" id="confirm-delete-btn" style="background: #e74c3c; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);"><i class='bx bx-trash'></i> Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="items-store.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

@@ -1,70 +1,150 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Place your order | Fresh Table</title>
-    <link rel="stylesheet" href="order-form.css" />
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Your Order | Hotel Restaurant</title>
+    
+    <!-- CSS Dependencies & Fonts -->
+    <link rel="stylesheet" href="order-form.css">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Floating Food Background Decoration -->
+    <img src="images/sekh_kabak-removebg-preview.png" class="floating-img img1" alt="">
+    <img src="images/pizza-removebg-preview.png" class="floating-img img2" alt="">
+
+    <!-- Header Navigation -->
+    <header>
+        <a href="index.html" class="logo"><i class='bx bx-bowl-hot'></i>Hotel</a>
+        <ul class="navlist">
+            <li><a href="index.html#home">Home</a></li>
+            <li><a href="index.html#about">About Us</a></li>
+            <li><a href="index.html#shop">Our Shop</a></li>
+            <li><a href="index.html#review">Our Cutomer</a></li>
+            <li><a href="index.html#contact">Contact Us</a></li>
+            <li><a href="admin.html" style="color: var(--main-color); font-weight: 600;"><i class='bx bx-user-check'></i> Admin Dashboard</a></li>
+        </ul>
+        <div class="nav-icons">
+            <a href="index.html#shop" title="Search Menu"><i class='bx bx-search'></i></a>
+            <a href="admin.html" title="Admin Dashboard"><i class='bx bx-user'></i></a>
+            <a href="order-form.html" class="active" title="Order Form"><i class='bx bx-cart'></i></a>
+            <div class="bx bx-menu" id="menu-icon"></div>
+        </div>
+    </header>
+
+    <!-- Main Order Form Section -->
     <main class="page-shell">
-      <section class="order-card" aria-labelledby="page-title">
-        <header class="card-header">
-          <p class="eyebrow">Fresh Table Restaurant</p>
-          <h1 id="page-title">Place your order</h1>
-          <p>Choose your food and we’ll prepare it fresh for you.</p>
-        </header>
+        <section class="order-card" aria-labelledby="page-title">
+            <header class="card-header">
+                <span class="eyebrow"><i class='bx bx-restaurant'></i> Hotel Fresh Kitchen</span>
+                <h1 id="page-title">Place Your <span>Order</span></h1>
+                <p>Choose your favorite delicious food items below and we’ll prepare them hot and fresh for you.</p>
+            </header>
 
-        <form id="order-form">
-          <fieldset>
-            <legend>Your details</legend>
-            <div class="form-grid">
-              <label>Full name
-                <input name="fullName" type="text" autocomplete="name" required />
-              </label>
-              <label>Phone number
-                <input name="phone" type="tel" autocomplete="tel" required />
-              </label>
-              <label class="full-width">Email <span class="optional">(optional)</span>
-                <input name="email" type="email" autocomplete="email" />
-              </label>
-            </div>
-          </fieldset>
+            <form id="order-form">
+                <!-- Customer Information -->
+                <fieldset>
+                    <legend><i class='bx bx-user'></i> Your Information</legend>
+                    <div class="form-grid">
+                        <div class="input-field-wrapper">
+                            <label>Full Name *</label>
+                            <div class="input-box-inner">
+                                <i class='bx bx-user'></i>
+                                <input name="fullName" type="text" placeholder="Enter your full name" autocomplete="name" required />
+                            </div>
+                        </div>
 
-          <fieldset>
-            <legend>How would you like your order?</legend>
-            <div class="order-types">
-              <label><input type="radio" name="orderType" value="pickup" checked /> Pickup</label>
-              <label><input type="radio" name="orderType" value="dine_in" /> Dine in</label>
-              <label><input type="radio" name="orderType" value="delivery" /> Delivery</label>
-            </div>
-            <label id="table-field" class="conditional-field" hidden>Table number
-              <input name="tableNumber" type="text" />
-            </label>
-            <label id="address-field" class="conditional-field" hidden>Delivery address
-              <textarea name="deliveryAddress" rows="2"></textarea>
-            </label>
-          </fieldset>
+                        <div class="input-field-wrapper">
+                            <label>Phone Number *</label>
+                            <div class="input-box-inner">
+                                <i class='bx bx-phone'></i>
+                                <input name="phone" type="tel" placeholder="Enter phone number" autocomplete="tel" required />
+                            </div>
+                        </div>
 
-          <fieldset>
-            <legend>Menu</legend>
-            <div id="menu-items" class="menu-items" aria-live="polite"></div>
-          </fieldset>
+                        <div class="input-field-wrapper full-width">
+                            <label>Email Address <span class="optional">(optional)</span></label>
+                            <div class="input-box-inner">
+                                <i class='bx bxl-gmail'></i>
+                                <input name="email" type="email" placeholder="Enter email address" autocomplete="email" />
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
 
-          <label>Special instructions <span class="optional">(optional)</span>
-            <textarea name="specialInstructions" rows="3" placeholder="Allergies, no onions, extra sauce…"></textarea>
-          </label>
+                <!-- Order Type Options -->
+                <fieldset>
+                    <legend><i class='bx bx-car'></i> Order Type</legend>
+                    <div class="order-types">
+                        <label class="order-type-pill active">
+                            <input type="radio" name="orderType" value="pickup" checked />
+                            <i class='bx bx-walk'></i> Pickup
+                        </label>
+                        <label class="order-type-pill">
+                            <input type="radio" name="orderType" value="dine_in" />
+                            <i class='bx bx-dish'></i> Dine In
+                        </label>
+                        <label class="order-type-pill">
+                            <input type="radio" name="orderType" value="delivery" />
+                            <i class='bx bx-package'></i> Delivery
+                        </label>
+                    </div>
+                    
+                    <div id="table-field" class="input-field-wrapper conditional-field" hidden>
+                        <label>Table Number</label>
+                        <div class="input-box-inner">
+                            <i class='bx bx-table'></i>
+                            <input name="tableNumber" type="text" placeholder="e.g. Table #05" />
+                        </div>
+                    </div>
+                    
+                    <div id="address-field" class="input-field-wrapper conditional-field" hidden>
+                        <label>Delivery Address</label>
+                        <div class="input-box-textarea">
+                            <i class='bx bx-map-pin'></i>
+                            <textarea name="deliveryAddress" rows="2" placeholder="Enter complete delivery address..."></textarea>
+                        </div>
+                    </div>
+                </fieldset>
 
-          <section class="order-summary" aria-label="Order summary">
-            <span>Total</span>
-            <strong id="total">$0.00</strong>
-          </section>
+                <!-- Dynamic Live Menu Items -->
+                <fieldset>
+                    <legend><i class='bx bx-food-menu'></i> Select Menu Items</legend>
+                    <div id="menu-items" class="menu-items" aria-live="polite"></div>
+                </fieldset>
 
-          <button class="submit-button" type="submit">Submit order</button>
-          <p id="form-message" class="form-message" role="status"></p>
-        </form>
-      </section>
+                <!-- Special Requests -->
+                <div class="input-field-wrapper">
+                    <label>Special Instructions <span class="optional">(optional)</span></label>
+                    <div class="input-box-textarea">
+                        <i class='bx bx-comment-detail'></i>
+                        <textarea name="specialInstructions" rows="3" placeholder="No onions, extra sauce, mild spicy, special dietary requests..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Grand Total Card -->
+                <div class="order-summary-box">
+                    <span class="summary-label"><i class='bx bx-receipt' style="color: var(--main-color);"></i> Grand Total:</span>
+                    <span class="summary-total" id="total">$0.00</span>
+                </div>
+
+                <!-- Action Button -->
+                <button class="btn-submit" type="submit">
+                    <i class='bx bx-paper-plane'></i> Submit Order Now
+                </button>
+
+                <p id="form-message" class="form-message" role="status"></p>
+            </form>
+        </section>
     </main>
+
+    <!-- JavaScript Files -->
+    <script src="items-store.js"></script>
     <script src="order-form.js"></script>
-  </body>
+</body>
 </html>

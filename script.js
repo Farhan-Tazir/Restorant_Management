@@ -24,7 +24,6 @@ const sr =ScrollReveal({
     reset: true
 })
 
-
 sr.reveal('.home-text',{delay:300});
 sr.reveal('.home-img',{delay:400});
 sr.reveal('.container',{delay:400});
@@ -36,3 +35,49 @@ sr.reveal('.middle-text',{});
 sr.reveal('.row-btn,.shop-content',{delay:300});
 
 sr.reveal('.review-content,.contact',{delay:300});
+
+// Dynamic rendering of shop items managed via Admin Dashboard
+function renderShopItems() {
+    const shopContent = document.querySelector('.shop-content');
+    if (!shopContent || !window.HotalStore) return;
+
+    const items = window.HotalStore.getItems().filter(item => item.isAvailable);
+
+    if (items.length === 0) {
+        shopContent.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--second-color); padding: 40px; font-size: 1.2rem;">No products currently available on menu. Check back soon!</div>`;
+        return;
+    }
+
+    shopContent.innerHTML = items.map(item => `
+        <div class="row">
+            <img src="${item.image}" alt="${item.name}" onerror="this.src='images/fast-food.png'">
+            <h3>${item.name}</h3>
+            <p>${item.description || 'Freshly prepared with authentic ingredients.'}</p>
+            <div class="in-text">
+                <div class="price">
+                    <h6>$${parseFloat(item.price).toFixed(2)}</h6>
+                </div>
+                <div class="s-btnn">
+                    <a href="order-form.html">Order Now</a>
+                </div>
+            </div>
+            <div class="top-icon">
+                <a href="#"><i class='bx bx-heart'></i></a>
+            </div>
+        </div>
+    `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderShopItems();
+
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'hotal_items') {
+            renderShopItems();
+        }
+    });
+
+    window.addEventListener('hotal_items_updated', () => {
+        renderShopItems();
+    });
+});
