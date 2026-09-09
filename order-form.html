@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Place your order | Fresh Table</title>
+    <link rel="stylesheet" href="order-form.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="order-card" aria-labelledby="page-title">
+        <header class="card-header">
+          <p class="eyebrow">Fresh Table Restaurant</p>
+          <h1 id="page-title">Place your order</h1>
+          <p>Choose your food and we’ll prepare it fresh for you.</p>
+        </header>
+
+        <form id="order-form">
+          <fieldset>
+            <legend>Your details</legend>
+            <div class="form-grid">
+              <label>Full name
+                <input name="fullName" type="text" autocomplete="name" required />
+              </label>
+              <label>Phone number
+                <input name="phone" type="tel" autocomplete="tel" required />
+              </label>
+              <label class="full-width">Email <span class="optional">(optional)</span>
+                <input name="email" type="email" autocomplete="email" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>How would you like your order?</legend>
+            <div class="order-types">
+              <label><input type="radio" name="orderType" value="pickup" checked /> Pickup</label>
+              <label><input type="radio" name="orderType" value="dine_in" /> Dine in</label>
+              <label><input type="radio" name="orderType" value="delivery" /> Delivery</label>
+            </div>
+            <label id="table-field" class="conditional-field" hidden>Table number
+              <input name="tableNumber" type="text" />
+            </label>
+            <label id="address-field" class="conditional-field" hidden>Delivery address
+              <textarea name="deliveryAddress" rows="2"></textarea>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Menu</legend>
+            <div id="menu-items" class="menu-items" aria-live="polite"></div>
+          </fieldset>
+
+          <label>Special instructions <span class="optional">(optional)</span>
+            <textarea name="specialInstructions" rows="3" placeholder="Allergies, no onions, extra sauce…"></textarea>
+          </label>
+
+          <section class="order-summary" aria-label="Order summary">
+            <span>Total</span>
+            <strong id="total">$0.00</strong>
+          </section>
+
+          <button class="submit-button" type="submit">Submit order</button>
+          <p id="form-message" class="form-message" role="status"></p>
+        </form>
+      </section>
+    </main>
+    <script src="order-form.js"></script>
+  </body>
+</html>
