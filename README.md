@@ -1,4 +1,4 @@
-# Hotal
-this web is made for the Hotals
+# Restorant managment system
+this web is made for the Restorant
 <br>
 Author - Farhan Tazir
