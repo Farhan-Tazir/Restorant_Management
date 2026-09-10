@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account</title>
+    <title>Create Account | Hotel Restaurant</title>
 
     <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -26,9 +26,9 @@ body{
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     background: #111;
-    overflow: hidden;
+    overflow-x: hidden;
     position: relative;
 }
 
@@ -61,12 +61,13 @@ body{
 /* FORM */
 form{
     width: 420px;
-    background: rgba(20, 20, 20, 0.7);
+    background: rgba(20, 20, 20, 0.85);
     border: 1px solid #666;
     padding: 35px;
     border-radius: 20px;
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
     z-index: 20;
+    margin: 20px;
 }
 
 h2{
@@ -110,6 +111,11 @@ input{
 .links a{
     color: var(--main-color);
     font-size: 13px;
+    text-decoration: none;
+}
+
+.links a:hover{
+    text-decoration: underline;
 }
 
 /* BUTTON */
@@ -130,56 +136,133 @@ button:hover{
     background: var(--main-color);
     color: var(--text-color);
     box-shadow: 0px 0px 20px var(--main-color);
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
+
+.msg-status {
+    font-size: 14px;
+    text-align: center;
+    margin-top: 12px;
+}
+.msg-status.success { color: #2ecc71; }
+.msg-status.error { color: #e74c3c; }
 </style>
 </head>
 
 <body>
 
     <!-- Floating Images -->
-    <img src="/images/sekh_kabak-removebg-preview.png" class="floating-img img1">
-    <img src="/images/pizza-removebg-preview.png" class="floating-img img2">
+    <img src="images/sekh_kabak-removebg-preview.png" class="floating-img img1" alt="">
+    <img src="images/pizza-removebg-preview.png" class="floating-img img2" alt="">
 
-    <form action="login.html" id="password">
+    <form id="signup-form">
         <h2>Create Account</h2>
 
         <div class="input-box">
             <i class='bx bx-user'></i>
-            <input type="text" placeholder="Enter Name">
+            <input type="text" id="reg-name" placeholder="Enter Full Name" required>
         </div>
 
         <div class="input-box">
             <i class='bx bxl-gmail'></i>
-            <input type="email" placeholder="Enter Email">
+            <input type="email" id="reg-email" placeholder="Enter Email" required>
+        </div>
+
+        <div class="input-box">
+            <i class='bx bx-phone'></i>
+            <input type="tel" id="reg-phone" placeholder="Enter Phone Number (e.g. +92...)" required>
         </div>
 
         <div class="input-box">
             <i class='bx bx-lock-alt'></i>
-            <input type="password" id="newPass" placeholder="Enter Password">
-        </div>
-         <div class="input-box">
-            <i class='bx bx-lock-alt'></i>
-            <input type="password" id="confirmPass" placeholder="Conform Password">
-        </div>
-        <div class="links">
-            <a href="login.html">Login Instead</a>
+            <input type="password" id="newPass" placeholder="Enter Password" required>
         </div>
 
-        <button onclick="checkpassword()">Create Account</button>
-        <p id="error" style="color:red; font-size:14px;text-align: center; margin-top: 7px;"></p>
+        <div class="input-box">
+            <i class='bx bx-lock-alt'></i>
+            <input type="password" id="confirmPass" placeholder="Confirm Password" required>
+        </div>
+
+        <div class="links">
+            <a href="login.html">Already have an account? Login Instead</a>
+        </div>
+
+        <button type="submit" id="btn-submit">Create Account</button>
+        <p id="msg-status" class="msg-status"></p>
     </form>
 
-     <script>
-    document.getElementById("password").addEventListener("submit", function(event) {
-    let pass1 = document.getElementById("newPass").value;
-    let pass2 = document.getElementById("confirmPass").value;
+    <script src="items-store.js"></script>
+    <script>
+    document.getElementById("signup-form").addEventListener("submit", async function(event) {
+        event.preventDefault();
 
-    if (pass1 !== pass2) {
-        event.preventDefault();  // ❌ stop form from submitting
-        document.getElementById("error").innerText = "Passwords do not match!";
-    }
-});
-</script>
+        const name = document.getElementById("reg-name").value.trim();
+        const email = document.getElementById("reg-email").value.trim();
+        const phone = document.getElementById("reg-phone").value.trim();
+        const pass1 = document.getElementById("newPass").value;
+        const pass2 = document.getElementById("confirmPass").value;
+        const msgEl = document.getElementById("msg-status");
+        const btn = document.getElementById("btn-submit");
+
+        if (pass1 !== pass2) {
+            msgEl.className = "msg-status error";
+            msgEl.innerText = "Passwords do not match!";
+            return;
+        }
+
+        if (pass1.length < 6) {
+            msgEl.className = "msg-status error";
+            msgEl.innerText = "Password must be at least 6 characters long.";
+            return;
+        }
+
+        btn.disabled = true;
+        msgEl.className = "msg-status";
+        msgEl.innerText = "Creating account...";
+
+        try {
+            // Attempt API call
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ full_name: name, email, phone, password: pass1 })
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Registration failed');
+            }
+
+            // Sync with local HotalStore
+            window.HotalStore.registerUser({ full_name: name, email, phone, password: pass1 });
+            window.HotalStore.loginUser(email, pass1);
+
+            msgEl.className = "msg-status success";
+            msgEl.innerText = "Account created successfully! Redirecting to dashboard...";
+
+            setTimeout(() => {
+                window.location.href = "user-dashboard.html";
+            }, 1200);
+
+        } catch (err) {
+            // Fallback to client HotalStore
+            try {
+                const user = window.HotalStore.registerUser({ full_name: name, email, phone, password: pass1 });
+                window.HotalStore.setCurrentUser(user);
+
+                msgEl.className = "msg-status success";
+                msgEl.innerText = "Account created! Redirecting to dashboard...";
+
+                setTimeout(() => {
+                    window.location.href = "user-dashboard.html";
+                }, 1200);
+            } catch (localErr) {
+                msgEl.className = "msg-status error";
+                msgEl.innerText = localErr.message || err.message || "Failed to create account.";
+                btn.disabled = false;
+            }
+        }
+    });
+    </script>
 </body>
 </html>

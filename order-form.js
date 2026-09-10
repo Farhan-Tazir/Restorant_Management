@@ -1,7 +1,7 @@
 // order-form.js - Logic for Hotel Restaurant Order Form
 
 function getActiveMenu() {
-  if (window.HotalStore) {
+  if (window.HotalStore && typeof window.HotalStore.getItems === 'function') {
     return window.HotalStore.getItems().filter(item => item.isAvailable);
   }
   return [
@@ -19,6 +19,24 @@ const menuItems = document.querySelector('#menu-items');
 const totalElement = document.querySelector('#total');
 const message = document.querySelector('#form-message');
 const header = document.querySelector("header");
+
+// Auto-fill logged in user info if available
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.HotalStore && typeof window.HotalStore.getCurrentUser === 'function') {
+        const user = window.HotalStore.getCurrentUser();
+        if (user) {
+            const nameEl = document.querySelector('#order-fullName');
+            const phoneEl = document.querySelector('#order-phone');
+            const emailEl = document.querySelector('#order-email');
+            const addressEl = document.querySelector('#order-deliveryAddress');
+
+            if (nameEl && !nameEl.value) nameEl.value = user.full_name || '';
+            if (phoneEl && !phoneEl.value) phoneEl.value = user.phone || '';
+            if (emailEl && !emailEl.value) emailEl.value = user.email || '';
+            if (addressEl && !addressEl.value) addressEl.value = user.address || '';
+        }
+    }
+});
 
 window.addEventListener("scroll", function() {
     if (header) header.classList.toggle("sticky", window.scrollY > 80);
@@ -52,7 +70,7 @@ function renderOrderFormMenu() {
 renderOrderFormMenu();
 
 function updateTotal() {
-  let total = 0;
+  let subtotal = 0;
   menu.forEach((item) => {
     const selected = document.querySelector(`.item-checkbox[data-id="${item.id}"]`);
     const quantity = document.querySelector(`[data-quantity-for="${item.id}"]`);
@@ -68,12 +86,17 @@ function updateTotal() {
         }
       }
       if (selected.checked) {
-        total += parseFloat(item.price) * Number(quantity.value || 1);
+        subtotal += parseFloat(item.price) * Number(quantity.value || 1);
       }
     }
   });
+
+  const selectedOrderType = document.querySelector('input[name="orderType"]:checked');
+  const deliveryFee = (selectedOrderType && selectedOrderType.value === 'delivery') ? 2.00 : 0.00;
+  const grandTotal = subtotal + (subtotal > 0 ? deliveryFee : 0);
+
   if (totalElement) {
-    totalElement.textContent = `$${total.toFixed(2)}`;
+    totalElement.textContent = `$${grandTotal.toFixed(2)}`;
   }
 }
 
@@ -86,7 +109,8 @@ if (menuItems) {
 const orderTypeInputs = document.querySelectorAll('input[name="orderType"]');
 orderTypeInputs.forEach(input => {
   input.addEventListener('change', (event) => {
-    document.querySelectorAll('.order-type-pill').forEach(pill => pill.classList.remove('active'));
+    const fieldset = event.target.closest('fieldset');
+    fieldset.querySelectorAll('.order-type-pill').forEach(pill => pill.classList.remove('active'));
     event.target.closest('.order-type-pill').classList.add('active');
 
     const type = event.target.value;
@@ -100,23 +124,39 @@ orderTypeInputs.forEach(input => {
   });
 });
 
+// Payment Method Selection Pills Handler
+const paymentMethodInputs = document.querySelectorAll('input[name="paymentMethod"]');
+paymentMethodInputs.forEach(input => {
+  input.addEventListener('change', (event) => {
+    const fieldset = event.target.closest('fieldset');
+    fieldset.querySelectorAll('.payment-type-pill').forEach(pill => pill.classList.remove('active'));
+    event.target.closest('.payment-type-pill').classList.add('active');
+  });
+});
+
 // Form Submission Handler
 if (form) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
-    const items = menu.flatMap((item) => {
+    
+    const selectedItems = menu.flatMap((item) => {
       const selected = document.querySelector(`.item-checkbox[data-id="${item.id}"]`);
       const quantityEl = document.querySelector(`[data-quantity-for="${item.id}"]`);
       if (selected && selected.checked) {
-        return [{ menuItemId: item.id, quantity: Number(quantityEl.value || 1) }];
+        return [{
+          menuItemId: item.id,
+          item_name: item.name,
+          unit_price: parseFloat(item.price),
+          quantity: Number(quantityEl.value || 1)
+        }];
       }
       return [];
     });
 
-    if (!items.length) {
-      message.className = 'form-message';
-      message.textContent = 'Please select at least one menu item.';
+    if (!selectedItems.length) {
+      message.className = 'form-message error';
+      message.textContent = 'Please select at least one menu item to place your order.';
       return;
     }
 
@@ -126,30 +166,60 @@ if (form) {
     message.className = 'form-message';
     message.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Submitting your order...`;
 
-    const payload = Object.fromEntries(formData.entries());
-    payload.items = items;
+    const currentUser = window.HotalStore ? window.HotalStore.getCurrentUser() : null;
+    const orderType = formData.get('orderType') || 'pickup';
+    const paymentMethod = formData.get('paymentMethod') || 'Cash on Delivery';
+    
+    let subtotal = 0;
+    selectedItems.forEach(i => subtotal += i.unit_price * i.quantity);
+    const deliveryFee = orderType === 'delivery' ? 2.00 : 0.00;
+    const grandTotal = subtotal + deliveryFee;
+
+    const orderPayload = {
+      user_id: currentUser ? currentUser.id : 'user-1',
+      customer_name: formData.get('fullName') || (currentUser ? currentUser.full_name : 'Guest'),
+      phone: formData.get('phone') || (currentUser ? currentUser.phone : ''),
+      order_type: orderType,
+      table_number: formData.get('tableNumber') || '',
+      delivery_address: formData.get('deliveryAddress') || '',
+      payment_method: paymentMethod,
+      subtotal: subtotal,
+      delivery_fee: deliveryFee,
+      total_amount: grandTotal,
+      items: selectedItems
+    };
 
     try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      // Save locally in HotalStore for instant cross-tab live tracking
+      const createdLocalOrder = window.HotalStore.addOrder(orderPayload);
 
-      if (!response.ok) throw new Error('Order submission failed');
+      // Attempt API backend sync with matching order_number ID
+      try {
+        await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...orderPayload,
+            order_number: createdLocalOrder.order_number,
+            id: createdLocalOrder.id
+          }),
+        });
+      } catch (apiErr) {
+        console.log('[OrderForm] Offline submit - saved locally');
+      }
 
-      const order = await response.json();
       form.reset();
       updateTotal();
       message.className = 'form-message success';
-      message.innerHTML = `<i class='bx bx-check-circle'></i> Thank you! Order ${order.orderNumber || ''} placed successfully.`;
+      message.innerHTML = `<i class='bx bx-check-circle'></i> Order <strong>${createdLocalOrder.order_number}</strong> placed! Redirecting to Live Tracker...`;
+
+      setTimeout(() => {
+        window.location.href = 'user-dashboard.html';
+      }, 1500);
+
     } catch (error) {
-      // Order fallback notice
-      form.reset();
-      updateTotal();
-      message.className = 'form-message success';
-      message.innerHTML = `<i class='bx bx-check-circle'></i> Order received! We are preparing your food fresh.`;
-    } finally {
+      message.className = 'form-message error';
+      message.textContent = 'Failed to submit order. Please try again.';
       if (button) button.disabled = false;
     }
   });

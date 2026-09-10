@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotel Admin - Menu & Product Dashboard</title>
+    <title>Hotel Admin - Menu & Orders Management</title>
     
     <!-- CSS Dependencies & Fonts -->
     <link rel="stylesheet" href="admin.css">
@@ -22,6 +22,10 @@
         </a>
 
         <div class="header-right">
+            <a href="user-dashboard.html" class="btn-visit-site" title="User Dashboard" style="background: rgba(255, 159, 13, 0.15); color: var(--main-color); border: 1px solid var(--main-color);">
+                <i class='bx bx-user-circle'></i>
+                <span>User Dashboard</span>
+            </a>
             <a href="index.html" class="btn-visit-site" title="Go to Main Website">
                 <i class='bx bx-store-alt'></i>
                 <span>View Main Website</span>
@@ -40,111 +44,207 @@
     <!-- Main Dashboard Body -->
     <main class="admin-container">
         
-        <!-- Page Title -->
-        <div class="dashboard-heading">
-            <div>
-                <h1>Menu <span>Management</span></h1>
-                <p>Add, edit, or remove menu items displayed live on the main website.</p>
+        <!-- Navigation Tabs -->
+        <nav class="admin-tabs" style="display: flex; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid #282828; padding-bottom: 15px;">
+            <button class="admin-tab-btn active" id="tab-btn-menu" onclick="switchAdminTab('menu')" style="padding: 10px 24px; background: var(--other-color); color: var(--main-color); border: 1px solid var(--main-color); border-radius: 30px; font-weight: 600; cursor: pointer; font-size: 0.95rem;">
+                <i class='bx bx-restaurant'></i> Menu Items
+            </button>
+            <button class="admin-tab-btn" id="tab-btn-orders" onclick="switchAdminTab('orders')" style="padding: 10px 24px; background: #222; color: #ccc; border: 1px solid #444; border-radius: 30px; font-weight: 600; cursor: pointer; font-size: 0.95rem;">
+                <i class='bx bx-receipt'></i> Orders & Payments (<span id="admin-pending-count" style="color: var(--main-color); font-weight: 700;">0</span> New)
+            </button>
+        </nav>
+
+        <!-- SECTION 1: MENU ITEMS MANAGEMENT -->
+        <div id="admin-menu-section">
+            <!-- Page Title -->
+            <div class="dashboard-heading">
+                <div>
+                    <h1>Menu <span>Management</span></h1>
+                    <p>Add, edit, or remove menu items displayed live on the main website.</p>
+                </div>
             </div>
+
+            <!-- Statistics Overview Widgets -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-restaurant'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-total-items">0</h3>
+                        <p>Total Items</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-check-circle'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-instock-items">0</h3>
+                        <p>In Stock & Available</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-category'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-categories">0</h3>
+                        <p>Active Categories</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-star'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-featured">0</h3>
+                        <p>Featured Special Items</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Controls Toolbar -->
+            <section class="controls-card">
+                <div class="search-filter-box">
+                    <div class="search-input-wrapper">
+                        <i class='bx bx-search'></i>
+                        <input type="text" id="search-input" placeholder="Search menu items by title or category...">
+                    </div>
+
+                    <select id="category-filter" class="select-filter">
+                        <option value="ALL">All Categories</option>
+                        <option value="Fast Food">Fast Food</option>
+                        <option value="Pizza">Pizza</option>
+                        <option value="Grill">Grill</option>
+                        <option value="Drinks">Drinks</option>
+                        <option value="Desserts">Desserts</option>
+                    </select>
+                </div>
+
+                <div class="action-buttons-group">
+                    <div class="view-toggle-btns">
+                        <button class="view-btn active" id="view-grid-btn" title="Grid View"><i class='bx bx-grid-alt'></i></button>
+                        <button class="view-btn" id="view-table-btn" title="Table View"><i class='bx bx-list-ul'></i></button>
+                    </div>
+
+                    <button class="btn-secondary" id="reset-defaults-btn" title="Restore sample menu items">
+                        <i class='bx bx-refresh'></i> Reset Defaults
+                    </button>
+
+                    <button class="btn-primary" id="open-add-modal-btn">
+                        <i class='bx bx-plus-circle'></i> Add New Item
+                    </button>
+                </div>
+            </section>
+
+            <!-- Dynamic Items Container -->
+            <section id="items-container">
+                <!-- Items Grid View -->
+                <div class="items-grid" id="items-grid"></div>
+
+                <!-- Items Table View -->
+                <div class="table-responsive" id="items-table-wrapper" style="display: none;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Featured</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-table-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State Notice -->
+                <div class="empty-state" id="empty-state" style="display: none;">
+                    <i class='bx bx-ghost'></i>
+                    <h3>No Items Found</h3>
+                    <p>No menu items match your search or filter. Try clearing filters or add a new item.</p>
+                    <button class="btn-primary" id="empty-add-btn"><i class='bx bx-plus-circle'></i> Add First Item</button>
+                </div>
+            </section>
         </div>
 
-        <!-- Statistics Overview Widgets -->
-        <section class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon"><i class='bx bx-restaurant'></i></div>
-                <div class="stat-details">
-                    <h3 id="stat-total-items">0</h3>
-                    <p>Total Items</p>
+        <!-- SECTION 2: ORDERS & PAYMENTS MANAGEMENT -->
+        <div id="admin-orders-section" style="display: none;">
+            <!-- Page Title -->
+            <div class="dashboard-heading">
+                <div>
+                    <h1>Customer <span>Orders & Payments</span></h1>
+                    <p>View, accept, update, and manage customer food orders and payment statuses live.</p>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class='bx bx-check-circle'></i></div>
-                <div class="stat-details">
-                    <h3 id="stat-instock-items">0</h3>
-                    <p>In Stock & Available</p>
+
+            <!-- Order Statistics -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-receipt'></i></div>
+                    <div class="stat-details">
+                        <h3 id="order-stat-total">0</h3>
+                        <p>Total Customer Orders</p>
+                    </div>
                 </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class='bx bx-category'></i></div>
-                <div class="stat-details">
-                    <h3 id="stat-categories">0</h3>
-                    <p>Active Categories</p>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(230, 126, 34, 0.2); color: #e67e22;"><i class='bx bx-time-five'></i></div>
+                    <div class="stat-details">
+                        <h3 id="order-stat-pending" style="color: #e67e22;">0</h3>
+                        <p>Pending Customer Orders</p>
+                    </div>
                 </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class='bx bx-star'></i></div>
-                <div class="stat-details">
-                    <h3 id="stat-featured">0</h3>
-                    <p>Featured Special Items</p>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(52, 152, 219, 0.2); color: #3498db;"><i class='bx bx-cycling'></i></div>
+                    <div class="stat-details">
+                        <h3 id="order-stat-active" style="color: #3498db;">0</h3>
+                        <p>In-Progress Orders</p>
+                    </div>
                 </div>
-            </div>
-        </section>
-
-        <!-- Controls Toolbar (Search, Filter, View Toggles, Add Button) -->
-        <section class="controls-card">
-            <div class="search-filter-box">
-                <div class="search-input-wrapper">
-                    <i class='bx bx-search'></i>
-                    <input type="text" id="search-input" placeholder="Search menu items by title or category...">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;"><i class='bx bx-check-double'></i></div>
+                    <div class="stat-details">
+                        <h3 id="order-stat-completed" style="color: #2ecc71;">0</h3>
+                        <p>Completed Orders</p>
+                    </div>
                 </div>
+            </section>
 
-                <select id="category-filter" class="select-filter">
-                    <option value="ALL">All Categories</option>
-                    <option value="Fast Food">Fast Food</option>
-                    <option value="Pizza">Pizza</option>
-                    <option value="Grill">Grill</option>
-                    <option value="Drinks">Drinks</option>
-                    <option value="Desserts">Desserts</option>
-                </select>
-            </div>
+            <!-- Order Controls -->
+            <section class="controls-card">
+                <div class="search-filter-box">
+                    <div class="search-input-wrapper">
+                        <i class='bx bx-search'></i>
+                        <input type="text" id="order-search-input" placeholder="Search order ID, customer name, phone...">
+                    </div>
 
-            <div class="action-buttons-group">
-                <div class="view-toggle-btns">
-                    <button class="view-btn active" id="view-grid-btn" title="Grid View"><i class='bx bx-grid-alt'></i></button>
-                    <button class="view-btn" id="view-table-btn" title="Table View"><i class='bx bx-list-ul'></i></button>
+                    <select id="order-status-filter" class="select-filter">
+                        <option value="ALL">All Statuses</option>
+                        <option value="pending">Pending Orders</option>
+                        <option value="preparing">Preparing Food</option>
+                        <option value="out_for_delivery">Out for Delivery</option>
+                        <option value="completed">Completed / Delivered</option>
+                    </select>
                 </div>
+            </section>
 
-                <button class="btn-secondary" id="reset-defaults-btn" title="Restore sample menu items">
-                    <i class='bx bx-refresh'></i> Reset Defaults
-                </button>
-
-                <button class="btn-primary" id="open-add-modal-btn">
-                    <i class='bx bx-plus-circle'></i> Add New Item
-                </button>
-            </div>
-        </section>
-
-        <!-- Dynamic Items Container -->
-        <section id="items-container">
-            <!-- Items Grid View -->
-            <div class="items-grid" id="items-grid"></div>
-
-            <!-- Items Table View (Hidden by default) -->
-            <div class="table-responsive" id="items-table-wrapper" style="display: none;">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Image</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                            <th>Featured</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-table-body"></tbody>
-                </table>
-            </div>
-
-            <!-- Empty State Notice -->
-            <div class="empty-state" id="empty-state" style="display: none;">
-                <i class='bx bx-ghost'></i>
-                <h3>No Items Found</h3>
-                <p>No menu items match your search or filter. Try clearing filters or add a new item.</p>
-                <button class="btn-primary" id="empty-add-btn"><i class='bx bx-plus-circle'></i> Add First Item</button>
-            </div>
-        </section>
+            <!-- Orders Table Container -->
+            <section class="controls-card" style="margin-top: 15px;">
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer & Contact</th>
+                                <th>Type / Details</th>
+                                <th>Items Ordered</th>
+                                <th>Total & Payment</th>
+                                <th>Order Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-orders-table-body">
+                            <!-- Dynamic Insertion -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
 
     </main>
 

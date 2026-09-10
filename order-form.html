@@ -25,13 +25,13 @@
             <li><a href="index.html#home">Home</a></li>
             <li><a href="index.html#about">About Us</a></li>
             <li><a href="index.html#shop">Our Shop</a></li>
-            <li><a href="index.html#review">Our Cutomer</a></li>
+            <li><a href="user-dashboard.html">Dashboard</a></li>
             <li><a href="index.html#contact">Contact Us</a></li>
-            <li><a href="admin.html" style="color: var(--main-color); font-weight: 600;"><i class='bx bx-user-check'></i> Admin Dashboard</a></li>
         </ul>
         <div class="nav-icons">
             <a href="index.html#shop" title="Search Menu"><i class='bx bx-search'></i></a>
-            <a href="admin.html" title="Admin Dashboard"><i class='bx bx-user'></i></a>
+            <a href="user-dashboard.html" title="User Profile"><i class='bx bx-user-circle'></i></a>
+            <a href="admin.html" title="Admin Dashboard"><i class='bx bx-shield-quarter'></i></a>
             <a href="order-form.html" class="active" title="Order Form"><i class='bx bx-cart'></i></a>
             <div class="bx bx-menu" id="menu-icon"></div>
         </div>
@@ -55,7 +55,7 @@
                             <label>Full Name *</label>
                             <div class="input-box-inner">
                                 <i class='bx bx-user'></i>
-                                <input name="fullName" type="text" placeholder="Enter your full name" autocomplete="name" required />
+                                <input name="fullName" id="order-fullName" type="text" placeholder="Enter your full name" autocomplete="name" required />
                             </div>
                         </div>
 
@@ -63,7 +63,7 @@
                             <label>Phone Number *</label>
                             <div class="input-box-inner">
                                 <i class='bx bx-phone'></i>
-                                <input name="phone" type="tel" placeholder="Enter phone number" autocomplete="tel" required />
+                                <input name="phone" id="order-phone" type="tel" placeholder="Enter phone number" autocomplete="tel" required />
                             </div>
                         </div>
 
@@ -71,7 +71,7 @@
                             <label>Email Address <span class="optional">(optional)</span></label>
                             <div class="input-box-inner">
                                 <i class='bx bxl-gmail'></i>
-                                <input name="email" type="email" placeholder="Enter email address" autocomplete="email" />
+                                <input name="email" id="order-email" type="email" placeholder="Enter email address" autocomplete="email" />
                             </div>
                         </div>
                     </div>
@@ -99,7 +99,7 @@
                         <label>Table Number</label>
                         <div class="input-box-inner">
                             <i class='bx bx-table'></i>
-                            <input name="tableNumber" type="text" placeholder="e.g. Table #05" />
+                            <input name="tableNumber" id="order-tableNumber" type="text" placeholder="e.g. Table #05" />
                         </div>
                     </div>
                     
@@ -107,8 +107,27 @@
                         <label>Delivery Address</label>
                         <div class="input-box-textarea">
                             <i class='bx bx-map-pin'></i>
-                            <textarea name="deliveryAddress" rows="2" placeholder="Enter complete delivery address..."></textarea>
+                            <textarea name="deliveryAddress" id="order-deliveryAddress" rows="2" placeholder="Enter complete delivery address..."></textarea>
                         </div>
+                    </div>
+                </fieldset>
+
+                <!-- Payment Method Selection -->
+                <fieldset>
+                    <legend><i class='bx bx-credit-card'></i> Payment Method</legend>
+                    <div class="order-types">
+                        <label class="payment-type-pill order-type-pill active">
+                            <input type="radio" name="paymentMethod" value="Cash on Delivery" checked />
+                            <i class='bx bx-money'></i> Cash on Delivery
+                        </label>
+                        <label class="payment-type-pill order-type-pill">
+                            <input type="radio" name="paymentMethod" value="Credit / Debit Card" />
+                            <i class='bx bx-credit-card-alt'></i> Card Payment
+                        </label>
+                        <label class="payment-type-pill order-type-pill">
+                            <input type="radio" name="paymentMethod" value="Online Wallet" />
+                            <i class='bx bx-wallet'></i> Online Wallet
+                        </label>
                     </div>
                 </fieldset>
 
@@ -135,7 +154,7 @@
 
                 <!-- Action Button -->
                 <button class="btn-submit" type="submit">
-                    <i class='bx bx-paper-plane'></i> Submit Order Now
+                    <i class='bx bx-paper-plane'></i> Place & Track Order
                 </button>
 
                 <p id="form-message" class="form-message" role="status"></p>

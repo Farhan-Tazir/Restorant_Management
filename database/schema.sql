@@ -1,8 +1,24 @@
 -- Restaurant food ordering database (PostgreSQL)
 -- Run this file once against an empty PostgreSQL database.
 
+-- Users Table for Dashboard & Authentication
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    phone VARCHAR(30),
+    address TEXT,
+    preferred_payment VARCHAR(50) DEFAULT 'Cash on Delivery',
+    reward_points INTEGER NOT NULL DEFAULT 480,
+    loyalty_badge VARCHAR(50) DEFAULT 'Gold Member',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE customers (
     id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
     full_name VARCHAR(120) NOT NULL,
     phone VARCHAR(30) NOT NULL,
     email VARCHAR(255),
@@ -29,10 +45,19 @@ CREATE TABLE menu_items (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE user_favorites (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    menu_item_id BIGINT NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, menu_item_id)
+);
+
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     order_number VARCHAR(30) NOT NULL UNIQUE,
-    customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+    customer_id BIGINT REFERENCES customers(id) ON DELETE RESTRICT,
     order_type VARCHAR(20) NOT NULL DEFAULT 'pickup'
         CHECK (order_type IN ('dine_in', 'pickup', 'delivery')),
     table_number VARCHAR(20),
@@ -71,21 +96,31 @@ CREATE TABLE payments (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_menu_items_category ON menu_items(category_id);
+CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_orders_customer ON orders(customer_id);
 CREATE INDEX idx_orders_status_created_at ON orders(status, created_at DESC);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_payments_order ON payments(order_id);
+CREATE INDEX idx_user_favorites ON user_favorites(user_id, menu_item_id);
 
--- Example starter menu. Customize or delete these records before production.
+-- Starter Seed Data
+INSERT INTO users (full_name, email, password_hash, phone, address, preferred_payment, reward_points, loyalty_badge) VALUES
+    ('Farhan Tazir', 'farhan@example.com', '$2b$10$e8w/u11m20JzUo2N4N.E4eO8h9V8pZ3k2A1s3d4f5g6h7j8k9l', '+92 310 3546086', 'House #12, Hotel Springs Avenue, Block 5, City', 'Cash on Delivery', 480, 'Gold Member');
+
 INSERT INTO menu_categories (name, display_order) VALUES
     ('Burgers', 1),
     ('Pizza', 2),
-    ('Drinks', 3),
-    ('Desserts', 4);
+    ('Grill', 3),
+    ('Fast Food', 4),
+    ('Drinks', 5);
 
-INSERT INTO menu_items (category_id, name, description, price) VALUES
-    ((SELECT id FROM menu_categories WHERE name = 'Burgers'), 'Classic Burger', 'Beef patty, lettuce, tomato, and house sauce.', 8.99),
-    ((SELECT id FROM menu_categories WHERE name = 'Pizza'), 'Margherita Pizza', 'Tomato sauce, mozzarella, and basil.', 11.99),
-    ((SELECT id FROM menu_categories WHERE name = 'Drinks'), 'Soft Drink', 'Choose your preferred flavor.', 2.50),
-    ((SELECT id FROM menu_categories WHERE name = 'Desserts'), 'Chocolate Cake', 'Rich chocolate cake slice.', 4.99);
+INSERT INTO menu_items (category_id, name, description, price, image_url) VALUES
+    ((SELECT id FROM menu_categories WHERE name = 'Burgers'), 'Burger', 'Juicy grilled beef patty with fresh lettuce, tomato, cheese and signature sauce.', 12.00, 'images/burger-removebg-preview.png'),
+    ((SELECT id FROM menu_categories WHERE name = 'Pizza'), 'Large Pizza', 'Cheesy pizza topped with fresh pepperoni, veggies, and classic marinara sauce.', 18.50, 'images/pizza-removebg-preview.png'),
+    ((SELECT id FROM menu_categories WHERE name = 'Grill'), 'Sekh Kabab', 'Tender charcoal-grilled spiced meat skewers served with mint chutney.', 14.00, 'images/sekh_kabak-removebg-preview.png'),
+    ((SELECT id FROM menu_categories WHERE name = 'Fast Food'), 'Shawarma', 'Flavorful wrapped spiced chicken with garlic sauce, veggies, and pickles.', 9.99, 'images/shawarma-removebg-preview.png');
+
+INSERT INTO user_favorites (user_id, menu_item_id)
+SELECT u.id, m.id FROM users u, menu_items m WHERE u.email = 'farhan@example.com';

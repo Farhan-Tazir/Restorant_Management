@@ -1,4 +1,4 @@
-// items-store.js - Shared Data Store for Restaurant Menu Items
+// items-store.js - Shared Data Store for Restaurant Menu Items, Users, Orders & Payments
 
 const DEFAULT_ITEMS = [
     {
@@ -47,13 +47,77 @@ const DEFAULT_ITEMS = [
     }
 ];
 
-const STORAGE_KEY = 'hotal_items';
+const DEFAULT_USERS = [
+    {
+        id: 'user-1',
+        full_name: 'Farhan Tazir',
+        email: 'farhan@example.com',
+        phone: '+92 310 3546086',
+        password: 'password123',
+        address: 'House #12, Hotel Springs Avenue, Block 5, City',
+        preferred_payment: 'Cash on Delivery',
+        reward_points: 480,
+        loyalty_badge: 'Gold Member',
+        created_at: new Date().toISOString()
+    }
+];
 
+const DEFAULT_ORDERS = [
+    {
+        id: 'HTL-9402',
+        order_number: 'HTL-9402',
+        user_id: 'user-1',
+        customer_name: 'Farhan Tazir',
+        phone: '+92 310 3546086',
+        order_type: 'delivery',
+        table_number: '',
+        delivery_address: 'House #12, Hotel Springs Avenue, Block 5, City',
+        status: 'out_for_delivery', // pending, accepted, preparing, out_for_delivery, completed, cancelled
+        payment_method: 'Cash on Delivery',
+        payment_status: 'pending', // pending, paid, refunded
+        subtotal: 30.50,
+        delivery_fee: 2.00,
+        total_amount: 32.50,
+        created_at: new Date().toISOString(),
+        items: [
+            { item_name: 'Burger', quantity: 1, unit_price: 12.00 },
+            { item_name: 'Large Pizza', quantity: 1, unit_price: 18.50 }
+        ]
+    },
+    {
+        id: 'HTL-8910',
+        order_number: 'HTL-8910',
+        user_id: 'user-1',
+        customer_name: 'Farhan Tazir',
+        phone: '+92 310 3546086',
+        order_type: 'dine_in',
+        table_number: 'Table #05',
+        delivery_address: '',
+        status: 'completed',
+        payment_method: 'Credit / Debit Card',
+        payment_status: 'paid',
+        subtotal: 34.00,
+        delivery_fee: 0.00,
+        total_amount: 34.00,
+        created_at: new Date(Date.now() - 86400000).toISOString(),
+        items: [
+            { item_name: 'Sekh Kabab', quantity: 2, unit_price: 14.00 },
+            { item_name: 'Soft Drink', quantity: 2, unit_price: 3.00 }
+        ]
+    }
+];
+
+const ITEMS_STORAGE_KEY = 'hotal_items';
+const USERS_STORAGE_KEY = 'hotal_users';
+const CURRENT_USER_KEY = 'hotal_current_user';
+const ORDERS_STORAGE_KEY = 'hotal_orders';
+
+// --- MENU ITEMS STORE ---
 function getItems() {
     try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(ITEMS_STORAGE_KEY);
         if (!stored) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ITEMS));
+            localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(DEFAULT_ITEMS));
             return DEFAULT_ITEMS;
         }
         return JSON.parse(stored);
@@ -65,8 +129,7 @@ function getItems() {
 
 function saveItems(items) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-        // Broadcast custom event for same-window updates
+        localStorage.setItem(ITEMS_STORAGE_KEY, JSON.stringify(items));
         window.dispatchEvent(new CustomEvent('hotal_items_updated', { detail: items }));
     } catch (e) {
         console.error('Error saving items to localStorage:', e);
@@ -134,7 +197,234 @@ function resetDefaultItems() {
     return DEFAULT_ITEMS;
 }
 
-// Export functions to global scope for static script inclusion
+// --- USERS & AUTHENTICATION STORE ---
+function getUsers() {
+    try {
+        const stored = localStorage.getItem(USERS_STORAGE_KEY);
+        if (!stored) {
+            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
+            return DEFAULT_USERS;
+        }
+        return JSON.parse(stored);
+    } catch (e) {
+        return DEFAULT_USERS;
+    }
+}
+
+function saveUsers(users) {
+    try {
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        window.dispatchEvent(new CustomEvent('hotal_users_updated', { detail: users }));
+    } catch (e) {
+        console.error('Error saving users:', e);
+    }
+}
+
+function registerUser(userData) {
+    const users = getUsers();
+    const existingEmail = users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
+    if (existingEmail) {
+        throw new Error('An account with this email address already exists!');
+    }
+
+    const newUser = {
+        id: 'user-' + Date.now(),
+        full_name: userData.full_name.trim(),
+        email: userData.email.trim().toLowerCase(),
+        phone: userData.phone ? userData.phone.trim() : '',
+        password: userData.password,
+        address: userData.address || '',
+        preferred_payment: 'Cash on Delivery',
+        reward_points: 100,
+        loyalty_badge: 'Silver Member',
+        created_at: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    saveUsers(users);
+    return newUser;
+}
+
+function loginUser(identifier, password) {
+    const users = getUsers();
+    const term = identifier.trim().toLowerCase();
+    const user = users.find(u => 
+        (u.email.toLowerCase() === term || (u.phone && u.phone.replace(/\s+/g, '') === term.replace(/\s+/g, ''))) &&
+        u.password === password
+    );
+
+    if (!user) {
+        throw new Error('Invalid email/phone or password');
+    }
+
+    setCurrentUser(user);
+    return user;
+}
+
+function getCurrentUser() {
+    try {
+        const stored = localStorage.getItem(CURRENT_USER_KEY);
+        if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    // Default fallback to first demo user
+    const users = getUsers();
+    return users[0] || null;
+}
+
+function setCurrentUser(user) {
+    try {
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        window.dispatchEvent(new CustomEvent('hotal_current_user_updated', { detail: user }));
+    } catch (e) {}
+}
+
+function logoutUser() {
+    try {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        window.dispatchEvent(new CustomEvent('hotal_current_user_updated', { detail: null }));
+    } catch (e) {}
+}
+
+function verifyPhone(phone) {
+    const users = getUsers();
+    const normalized = phone.trim().replace(/\s+/g, '');
+    const user = users.find(u => u.phone && u.phone.trim().replace(/\s+/g, '') === normalized);
+    return user || null;
+}
+
+function resetPasswordByPhone(phone, newPassword) {
+    const users = getUsers();
+    const normalized = phone.trim().replace(/\s+/g, '');
+    const userIndex = users.findIndex(u => u.phone && u.phone.trim().replace(/\s+/g, '') === normalized);
+
+    if (userIndex === -1) {
+        throw new Error('No account registered with this phone number!');
+    }
+
+    users[userIndex].password = newPassword;
+    saveUsers(users);
+
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === users[userIndex].id) {
+        currentUser.password = newPassword;
+        setCurrentUser(currentUser);
+    }
+
+    return users[userIndex];
+}
+
+function updateUserProfile(userId, profileData) {
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.id === userId || u.id === Number(userId));
+
+    if (userIndex !== -1) {
+        users[userIndex] = {
+            ...users[userIndex],
+            full_name: profileData.full_name || users[userIndex].full_name,
+            email: profileData.email || users[userIndex].email,
+            phone: profileData.phone || users[userIndex].phone,
+            address: profileData.address || users[userIndex].address,
+            preferred_payment: profileData.preferred_payment || users[userIndex].preferred_payment
+        };
+        saveUsers(users);
+
+        const current = getCurrentUser();
+        if (current && (current.id === userId || current.id === Number(userId))) {
+            setCurrentUser(users[userIndex]);
+        }
+        return users[userIndex];
+    }
+    return null;
+}
+
+// --- ORDERS & PAYMENTS STORE ---
+function getOrders() {
+    try {
+        const stored = localStorage.getItem(ORDERS_STORAGE_KEY);
+        if (!stored) {
+            localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(DEFAULT_ORDERS));
+            return DEFAULT_ORDERS;
+        }
+        return JSON.parse(stored);
+    } catch (e) {
+        return DEFAULT_ORDERS;
+    }
+}
+
+function saveOrders(orders) {
+    try {
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+        window.dispatchEvent(new CustomEvent('hotal_orders_updated', { detail: orders }));
+    } catch (e) {
+        console.error('Error saving orders:', e);
+    }
+}
+
+function addOrder(orderData) {
+    const orders = getOrders();
+    const orderNum = 'HTL-' + Math.floor(1000 + Math.random() * 9000);
+    const newOrder = {
+        id: orderNum,
+        order_number: orderNum,
+        user_id: orderData.user_id || (getCurrentUser() ? getCurrentUser().id : 'user-1'),
+        customer_name: orderData.customer_name || (getCurrentUser() ? getCurrentUser().full_name : 'Guest'),
+        phone: orderData.phone || (getCurrentUser() ? getCurrentUser().phone : ''),
+        order_type: orderData.order_type || 'delivery',
+        table_number: orderData.table_number || '',
+        delivery_address: orderData.delivery_address || '',
+        status: 'pending', // pending -> accepted -> preparing -> out_for_delivery -> completed
+        payment_method: orderData.payment_method || 'Cash on Delivery',
+        payment_status: orderData.payment_method === 'Credit / Debit Card' || orderData.payment_method === 'Online Wallet' ? 'paid' : 'pending',
+        subtotal: parseFloat(orderData.subtotal || 0),
+        delivery_fee: orderData.order_type === 'delivery' ? 2.00 : 0.00,
+        total_amount: parseFloat(orderData.total_amount || 0),
+        created_at: new Date().toISOString(),
+        items: orderData.items || []
+    };
+
+    orders.unshift(newOrder);
+    saveOrders(orders);
+    return newOrder;
+}
+
+function updateOrderStatus(orderId, status) {
+    const orders = getOrders();
+    const order = orders.find(o => o.id === orderId || o.order_number === orderId || String(o.id) === String(orderId) || String(o.order_number) === String(orderId));
+    if (order) {
+        order.status = status;
+        if (status === 'completed') {
+            order.payment_status = 'paid';
+        }
+        saveOrders(orders);
+        return order;
+    }
+    return null;
+}
+
+function updatePaymentStatus(orderId, paymentStatus) {
+    const orders = getOrders();
+    const order = orders.find(o => o.id === orderId || o.order_number === orderId || String(o.id) === String(orderId) || String(o.order_number) === String(orderId));
+    if (order) {
+        order.payment_status = paymentStatus;
+        saveOrders(orders);
+        return order;
+    }
+    return null;
+}
+
+function getUserOrders(userId) {
+    const orders = getOrders();
+    if (!userId) return orders;
+    return orders.filter(o => o.user_id === userId || String(o.user_id) === String(userId));
+}
+
+function getLatestActiveOrder(userId) {
+    const orders = getUserOrders(userId);
+    const active = orders.find(o => o.status !== 'completed' && o.status !== 'cancelled');
+    return active || orders[0] || null;
+}
+
+// Export functions to global scope
 window.HotalStore = {
     getItems,
     saveItems,
@@ -143,5 +433,26 @@ window.HotalStore = {
     toggleItemAvailability,
     removeItem,
     resetDefaultItems,
-    DEFAULT_ITEMS
+    DEFAULT_ITEMS,
+    
+    // Auth & Users
+    getUsers,
+    saveUsers,
+    registerUser,
+    loginUser,
+    getCurrentUser,
+    setCurrentUser,
+    logoutUser,
+    verifyPhone,
+    resetPasswordByPhone,
+    updateUserProfile,
+
+    // Orders & Payments
+    getOrders,
+    saveOrders,
+    addOrder,
+    updateOrderStatus,
+    updatePaymentStatus,
+    getUserOrders,
+    getLatestActiveOrder
 };

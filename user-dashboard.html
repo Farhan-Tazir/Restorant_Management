@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Hotel Restaurant</title>
+    
+    <!-- CSS Dependencies & Google Fonts -->
+    <link rel="stylesheet" href="user-dashboard.css">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <a href="index.html" class="logo">
+            <i class='bx bx-bowl-hot'></i>
+            Hotel <span>User</span>
+        </a>
+
+        <ul class="navlist">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#shop">Our Menu</a></li>
+            <li><a href="order-form.html">Order Online</a></li>
+            <li><a href="user-dashboard.html" class="active">Dashboard</a></li>
+        </ul>
+
+        <div class="nav-icons">
+            <a href="order-form.html" title="Cart / Orders"><i class='bx bx-shopping-bag'></i></a>
+            <a href="admin.html" title="Admin Portal"><i class='bx bx-shield-quarter'></i></a>
+            <div class="nav-user-profile" id="user-profile-toggle" title="User Profile">
+                <div class="user-avatar-small" id="nav-avatar-initial">F</div>
+                <span class="user-name-small" id="nav-username">Farhan</span>
+                <a href="javascript:void(0)" onclick="handleLogout()" style="color:#e74c3c; margin-left: 8px;" title="Logout"><i class='bx bx-log-out' style="font-size: 1.2rem;"></i></a>
+            </div>
+            <div class="bx bx-menu" id="menu-icon"></div>
+        </div>
+    </header>
+
+    <!-- Main User Dashboard Container -->
+    <main class="dashboard-container">
+        
+        <!-- Hero Welcome Banner -->
+        <section class="user-hero-banner">
+            <div class="hero-profile-info">
+                <div class="hero-avatar" id="hero-avatar">F</div>
+                <div class="hero-text">
+                    <h1>Welcome Back, <span id="hero-username">Farhan Tazir</span>!</h1>
+                    <p>
+                        <span><i class='bx bxs-check-shield' style="color: var(--main-color);"></i> Verified Customer</span>
+                        <span class="loyalty-badge" id="hero-loyalty-badge"><i class='bx bxs-star'></i> Gold Member</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="hero-actions">
+                <a href="order-form.html" class="btn-primary">
+                    <i class='bx bx-plus-circle'></i> Place New Order
+                </a>
+                <a href="index.html#shop" class="btn-secondary">
+                    <i class='bx bx-restaurant'></i> Explore Menu
+                </a>
+            </div>
+        </section>
+
+        <!-- Dashboard Navigation Tabs -->
+        <nav class="dashboard-tabs">
+            <button class="tab-btn active" data-tab="overview">
+                <i class='bx bx-grid-alt'></i> Overview
+            </button>
+            <button class="tab-btn" data-tab="orders">
+                <i class='bx bx-receipt'></i> My Orders
+            </button>
+            <button class="tab-btn" data-tab="favorites">
+                <i class='bx bx-heart'></i> Favorite Meals
+            </button>
+            <button class="tab-btn" data-tab="settings">
+                <i class='bx bx-user-pin'></i> Profile & Settings
+            </button>
+        </nav>
+
+        <!-- TAB 1: OVERVIEW -->
+        <section class="tab-pane active" id="tab-overview">
+            
+            <!-- Statistics Overview Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-dish'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-active-orders">0</h3>
+                        <p>Active In-Progress Orders</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-check-double'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-completed-orders">0</h3>
+                        <p>Total Completed Orders</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bx-gift'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-reward-points">480</h3>
+                        <p>Hotel Rewards Points</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class='bx bxs-heart'></i></div>
+                    <div class="stat-details">
+                        <h3 id="stat-fav-items">4</h3>
+                        <p>Favorite Menu Items</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Order Tracker Card -->
+            <div class="tracker-card">
+                <div class="section-header">
+                    <h2><i class='bx bx-map-pin'></i> Live Order Tracker</h2>
+                    <span class="status-badge preparing" id="tracker-status-badge">
+                        <i class='bx bx-loader-alt bx-spin'></i> Out for Delivery
+                    </span>
+                </div>
+
+                <!-- Progress Stepper -->
+                <div class="order-stepper">
+                    <div class="order-stepper-progress" id="stepper-progress-bar"></div>
+
+                    <div class="step-item completed" id="step-1">
+                        <div class="step-circle"><i class='bx bx-check'></i></div>
+                        <div class="step-label">Order Placed</div>
+                    </div>
+
+                    <div class="step-item completed" id="step-2">
+                        <div class="step-circle"><i class='bx bx-check'></i></div>
+                        <div class="step-label">Preparing Food</div>
+                    </div>
+
+                    <div class="step-item active" id="step-3">
+                        <div class="step-circle"><i class='bx bx-cycling'></i></div>
+                        <div class="step-label">Out for Delivery</div>
+                    </div>
+
+                    <div class="step-item" id="step-4">
+                        <div class="step-circle"><i class='bx bx-home-heart'></i></div>
+                        <div class="step-label">Delivered</div>
+                    </div>
+                </div>
+
+                <!-- Active Order Summary Box -->
+                <div class="active-order-summary" id="tracker-order-summary">
+                    <div class="order-items-preview">
+                        <img id="tracker-item-img" src="images/burger-removebg-preview.png" alt="Order Preview" onerror="this.src='images/fast-food.png'">
+                        <div class="order-details-mini">
+                            <h4 id="tracker-order-id">Order #HTL-9402 <span style="font-weight: 400; color: var(--second-color);" id="tracker-order-item-count">(2 Items)</span></h4>
+                            <p id="tracker-order-items-list">1x Juicy Beef Burger, 1x Cheesy Pepperoni Pizza</p>
+                            <small id="tracker-order-type-details" style="color: var(--main-color); font-weight: 500;"></small>
+                        </div>
+                    </div>
+                    <div>
+                        <span style="color: var(--second-color); font-size: 0.9rem;">Total & Payment:</span>
+                        <h3 style="color: var(--main-color); font-weight: 700;" id="tracker-order-total">$32.50</h3>
+                        <small id="tracker-payment-status-badge" style="font-size: 0.8rem; color: #2ecc71;"></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Orders Preview Card -->
+            <div class="content-card">
+                <div class="section-header">
+                    <h2><i class='bx bx-history'></i> Recent Orders</h2>
+                    <button class="action-btn-sm" onclick="switchTab('orders')">View All Orders</button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Date & Time</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overview-recent-orders-list">
+                            <!-- Dynamic insertion via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- TAB 2: MY ORDERS -->
+        <section class="tab-pane" id="tab-orders">
+            <div class="content-card">
+                <div class="section-header">
+                    <h2><i class='bx bx-receipt'></i> Order History & Status</h2>
+                    <a href="order-form.html" class="action-btn-sm">
+                        <i class='bx bx-plus'></i> New Order
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Items Ordered</th>
+                                <th>Amount & Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="full-orders-list">
+                            <!-- Dynamic insertion via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: FAVORITE MEALS -->
+        <section class="tab-pane" id="tab-favorites">
+            <div class="content-card">
+                <div class="section-header">
+                    <h2><i class='bx bxs-heart' style="color: #e74c3c;"></i> Your Favorite Dishes</h2>
+                    <p style="color: var(--second-color); font-size: 0.95rem;">Quickly order your saved delicious hotel specials.</p>
+                </div>
+
+                <div class="favorites-grid" id="favorites-container">
+                    <!-- Dynamic insertion via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: PROFILE & SETTINGS -->
+        <section class="tab-pane" id="tab-settings">
+            <div class="content-card">
+                <div class="section-header">
+                    <h2><i class='bx bx-user-circle'></i> Account & Profile Settings</h2>
+                </div>
+
+                <form id="user-profile-form">
+                    <div class="settings-form-grid">
+                        
+                        <div class="form-group">
+                            <label><i class='bx bx-user'></i> Full Name</label>
+                            <input type="text" id="prof-name" class="form-control" value="Farhan Tazir" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class='bx bx-envelope'></i> Email Address</label>
+                            <input type="email" id="prof-email" class="form-control" value="farhan@example.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class='bx bx-phone'></i> Phone Number</label>
+                            <input type="tel" id="prof-phone" class="form-control" value="+92 310 3546086" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class='bx bx-credit-card'></i> Preferred Payment</label>
+                            <select id="prof-payment" class="form-control">
+                                <option value="Cash on Delivery" selected>Cash on Delivery</option>
+                                <option value="Credit / Debit Card">Credit / Debit Card</option>
+                                <option value="Online Wallet">Online Wallet</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label><i class='bx bx-map'></i> Primary Delivery Address</label>
+                            <input type="text" id="prof-address" class="form-control" value="House #12, Hotel Springs Avenue, Block 5, City" required>
+                        </div>
+
+                        <div class="full-width" style="margin-top: 15px; padding-top: 20px; border-top: 1px solid #282828;">
+                            <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-color);"><i class='bx bx-lock-alt' style="color: var(--main-color);"></i> Change Password</h3>
+                            <div class="settings-form-grid">
+                                <div class="form-group">
+                                    <label>New Password</label>
+                                    <input type="password" id="new-pass" class="form-control" placeholder="Enter new password">
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm Password</label>
+                                    <input type="password" id="confirm-new-pass" class="form-control" placeholder="Confirm new password">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="full-width" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                            <button type="button" class="action-btn-sm" onclick="handleLogout()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px;">
+                                <i class='bx bx-log-out'></i> Logout Account
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class='bx bx-save'></i> Save Profile & Password
+                            </button>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 <span>Hotel Restaurant</span>. All Rights Reserved. Designed for exceptional dining experiences.</p>
+    </footer>
+
+    <!-- Shared Store & Dashboard Scripts -->
+    <script src="items-store.js"></script>
+    <script src="user-dashboard.js"></script>
+</body>
+</html>

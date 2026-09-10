@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Login | Hotel Restaurant</title>
 
     <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -20,22 +20,21 @@ body{
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     background: #111;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 /* Floating Images */
 .floating-img{
     position: absolute;
-    width: 400px;           /* BIGGER SIZE */
-    opacity: 1;             /* Full color, no fade */
-    z-index: 10;            /* ABOVE blur so no blue effect */
+    width: 400px;
+    opacity: 1;
+    z-index: 10;
     animation: float 6s infinite ease-in-out;
 }
 
-/* Position close to form corners */
 .img1{
     top: 50%;
     left: 50%;
@@ -61,10 +60,11 @@ form{
     padding: 40px;
     border-radius: 20px;
     background: rgba(26, 26, 26, 0.9);
-    width: 300px;
+    width: 340px;
     backdrop-filter: blur(6px);
     position: relative;
-    z-index: 20;  /* form is ABOVE images */
+    z-index: 20;
+    margin: 20px;
 }
 
 h2{
@@ -75,10 +75,10 @@ h2{
 
 .input-box{
     border: 1px solid #999;
-    height: 40px;
+    height: 44px;
     border-radius: 30px;
     margin-bottom: 15px;
-    padding: 10px;
+    padding: 10px 15px;
     display: flex;
     align-items: center;
 }
@@ -86,6 +86,7 @@ h2{
 .input-box i{
     margin-right: 8px;
     color: #ff9f0d;
+    font-size: 18px;
 }
 
 input{
@@ -93,18 +94,29 @@ input{
     background: none;
     outline: none;
     color: #fff;
-    width: 80%;
+    width: 100%;
+    font-size: 14px;
+}
+
+.links{
+    display: flex;
+    justify-content: space-between;
+    margin: 15px 0;
 }
 
 a{
     font-size: 12px;
     color: #ff9f0d;
-    margin: 0 10px;
+    text-decoration: none;
+}
+
+a:hover{
+    text-decoration: underline;
 }
 
 button{
     width: 100%;
-    height: 40px;
+    height: 44px;
     background: #464545;
     border: none;
     border-radius: 30px;
@@ -112,44 +124,109 @@ button{
     font-weight: 600;
     cursor: pointer;
     font-size: 17px;
-    margin-top: 15px;
-    transition: all .50s ease;
+    margin-top: 10px;
+    transition: all .40s ease;
 }
+
 button:hover{
     background-color: #ff9f0d;
     box-shadow: 0px 0px 25px #ff9f0d;
     color: #fff;
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
+
+.msg-status {
+    font-size: 13px;
+    margin-top: 12px;
+}
+.msg-status.error { color: #e74c3c; }
+.msg-status.success { color: #2ecc71; }
 </style>
 </head>
 
 <body>
 
     <!-- Floating Images -->
-    <img src="images/sekh_kabak-removebg-preview.png" class="floating-img img1">
-    <img src="images/pizza-removebg-preview.png" class="floating-img img2">
+    <img src="images/sekh_kabak-removebg-preview.png" class="floating-img img1" alt="">
+    <img src="images/pizza-removebg-preview.png" class="floating-img img2" alt="">
 
-    <form action="index.html">
+    <form id="login-form">
         <h2>LOGIN</h2>
 
         <div class="input-box">
-            <i class='bx bxl-gmail'></i>
-            <input type="email" placeholder="Enter Email" required>
+            <i class='bx bx-envelope'></i>
+            <input type="text" id="login-identifier" placeholder="Enter Email or Phone" required>
         </div>
 
         <div class="input-box">
             <i class='bx bx-lock-alt'></i>
-            <input type="password" placeholder="Enter Password" required>
+            <input type="password" id="login-password" placeholder="Enter Password" required>
         </div>
 
         <div class="links">
-            <a href="new password.html">Forget Password?</a>
+            <a href="new password.html">Forgot Password?</a>
             <a href="sign up.html">Sign Up</a>
         </div>
 
-        <button>Login</button>
+        <button type="submit" id="btn-login">Login</button>
+        <p id="msg-status" class="msg-status"></p>
     </form>
+
+    <script src="items-store.js"></script>
+    <script>
+    document.getElementById("login-form").addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const identifier = document.getElementById("login-identifier").value.trim();
+        const password = document.getElementById("login-password").value;
+        const msgEl = document.getElementById("msg-status");
+        const btn = document.getElementById("btn-login");
+
+        btn.disabled = true;
+        msgEl.className = "msg-status";
+        msgEl.innerText = "Authenticating...";
+
+        try {
+            // Attempt server API login
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: identifier, password: password })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || 'Invalid email/phone or password');
+            }
+
+            // Sync user session locally
+            window.HotalStore.setCurrentUser(data.user);
+
+            msgEl.className = "msg-status success";
+            msgEl.innerText = "Login successful! Welcome back...";
+
+            setTimeout(() => {
+                window.location.href = "user-dashboard.html";
+            }, 1000);
+
+        } catch (err) {
+            // Fallback to HotalStore local login
+            try {
+                const user = window.HotalStore.loginUser(identifier, password);
+                msgEl.className = "msg-status success";
+                msgEl.innerText = `Welcome back, ${user.full_name.split(' ')[0]}!`;
+
+                setTimeout(() => {
+                    window.location.href = "user-dashboard.html";
+                }, 1000);
+            } catch (localErr) {
+                msgEl.className = "msg-status error";
+                msgEl.innerText = localErr.message || err.message || "Invalid credentials. Please check your details.";
+                btn.disabled = false;
+            }
+        }
+    });
+    </script>
 
 </body>
 </html>
