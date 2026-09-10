@@ -49,20 +49,34 @@ function renderShopItems() {
     }
 
     shopContent.innerHTML = items.map(item => `
-        <div class="row">
-            <img src="${item.image}" alt="${item.name}" onerror="this.src='images/fast-food.png'">
-            <h3>${item.name}</h3>
-            <p>${item.description || 'Freshly prepared with authentic ingredients.'}</p>
-            <div class="in-text">
-                <div class="price">
-                    <h6>$${parseFloat(item.price).toFixed(2)}</h6>
-                </div>
-                <div class="s-btnn">
-                    <a href="order-form.html">Order Now</a>
-                </div>
+        <div class="item-card" data-id="${item.id}">
+            <div class="item-card-header">
+                <span class="badge-category">${item.category || 'Special'}</span>
+                <span class="status-badge ${item.isAvailable ? 'available' : 'unavailable'}">
+                    <i class='bx ${item.isAvailable ? 'bx-check' : 'bx-x'}'></i>
+                    ${item.isAvailable ? 'In Stock' : 'Out of Stock'}
+                </span>
             </div>
-            <div class="top-icon">
-                <a href="#"><i class='bx bx-heart'></i></a>
+
+            <div class="item-image-wrapper">
+                <img src="${item.image}" alt="${item.name}" onerror="this.src='images/fast-food.png'">
+            </div>
+
+            <div class="item-details">
+                <h3>${item.name}</h3>
+                <p>${item.description || 'Freshly prepared with authentic ingredients.'}</p>
+            </div>
+
+            <div class="item-bottom">
+                <div class="item-price">$${parseFloat(item.price).toFixed(2)}</div>
+                <div class="item-actions">
+                    <button class="icon-btn fav-btn" onclick="this.classList.toggle('liked')" title="Add to Favorites">
+                        <i class='bx bx-heart'></i>
+                    </button>
+                    <a href="order-form.html" class="btn-order-pill">
+                        <i class='bx bx-cart-alt'></i> Order Now
+                    </a>
+                </div>
             </div>
         </div>
     `).join('');

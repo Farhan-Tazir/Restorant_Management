@@ -317,19 +317,31 @@ async function initFavoritesGrid() {
     }
 
     container.innerHTML = items.map(item => `
-        <div class="fav-card">
-            <div class="fav-img-wrapper">
-                <button class="fav-heart-btn" onclick="toggleFavorite(this)" title="Toggle Favorite">
-                    <i class='bx bxs-heart'></i>
-                </button>
+        <div class="item-card" data-id="${item.id}">
+            <div class="item-card-header">
+                <span class="badge-category">${item.category || 'Special'}</span>
+                <span class="status-badge ${item.isAvailable !== false ? 'available' : 'unavailable'}">
+                    <i class='bx ${item.isAvailable !== false ? 'bx-check' : 'bx-x'}'></i>
+                    ${item.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
+                </span>
+            </div>
+
+            <div class="item-image-wrapper">
                 <img src="${item.image || item.image_url || 'images/fast-food.png'}" alt="${item.name}" onerror="this.src='images/fast-food.png'">
             </div>
-            <div class="fav-details">
+
+            <div class="item-details">
                 <h3>${item.name}</h3>
                 <p>${item.description || 'Delicious freshly prepared dish.'}</p>
-                <div class="fav-bottom">
-                    <span class="fav-price">$${parseFloat(item.price).toFixed(2)}</span>
-                    <a href="order-form.html" class="action-btn-sm" style="background: var(--main-color); color: var(--bg-color); border: none;">
+            </div>
+
+            <div class="item-bottom">
+                <div class="item-price">$${parseFloat(item.price).toFixed(2)}</div>
+                <div class="item-actions">
+                    <button class="icon-btn fav-btn liked" onclick="toggleFavorite(this)" title="Toggle Favorite">
+                        <i class='bx bxs-heart' style="color: #e74c3c;"></i>
+                    </button>
+                    <a href="order-form.html" class="btn-order-pill">
                         <i class='bx bx-cart-add'></i> Order Now
                     </a>
                 </div>
