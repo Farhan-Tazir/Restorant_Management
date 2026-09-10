@@ -58,8 +58,11 @@ body {
     50% { transform: translateY(-20px) rotate(4deg); }
 }
 
-/* Header Navbar - EXACT MATCH to style.css */
-header {
+/* Header Navbar - EXACT MATCH to style.css
+   NOTE: scoped to "body > header" (not just "header") so this fixed-position
+   rule only targets the site nav bar and never matches the unrelated
+   <header class="card-header"> nested inside .order-card further down the page. */
+body > header {
     position: fixed;
     width: 100%;
     top: 0;
@@ -73,7 +76,7 @@ header {
     transition: all 0.50s ease;
 }
 
-header.sticky {
+body > header.sticky {
     padding: 12px 14%;
     background: var(--bg-color);
     border-bottom: 1px solid rgba(255, 159, 13, 0.2);
@@ -356,10 +359,19 @@ legend i {
 }
 
 .order-type-pill input[type="radio"] {
-    accent-color: var(--main-color);
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
+    /* Visually hidden: the whole pill is the clickable control and already
+       shows selection via the .active border/glow state, so a second native
+       radio dot next to the icon just adds visual clutter. Kept accessible
+       (not display:none) for screen readers and keyboard focus. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .order-type-pill i {
@@ -474,6 +486,18 @@ legend i {
 
 .quantity-input:disabled {
     opacity: 0.4;
+}
+
+/* Hide native number-input spin arrows: at 42px wide they get clipped by
+   the pill container and look broken rather than intentional. */
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.quantity-input[type="number"] {
+    -moz-appearance: textfield;
 }
 
 /* Order Summary Box */
