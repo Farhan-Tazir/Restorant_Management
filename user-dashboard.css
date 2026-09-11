@@ -1056,3 +1056,118 @@ footer p span {
         text-align: left;
     }
 }
+
+/* ============ 700px BREAKPOINT ============ */
+@media (max-width: 700px) {
+    .dashboard-main {
+        padding: 20px 4%;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .favorites-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .item-card {
+        width: 100%;
+    }
+
+    .orders-list {
+        gap: 12px;
+    }
+
+    .order-card {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .hero-text h1 {
+        font-size: 1.7rem;
+    }
+
+    .user-hero-banner {
+        padding: 20px;
+    }
+
+    .tab-nav {
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        font-size: 0.82rem;
+        padding: 8px 12px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+/* ============ 400px BREAKPOINT ============ */
+@media (max-width: 400px) {
+    .dashboard-main {
+        padding: 16px 3%;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    .stat-value {
+        font-size: 1.6rem;
+    }
+
+    .item-card {
+        padding: 14px;
+    }
+
+    .item-image-wrapper {
+        height: 110px;
+    }
+
+    .item-price {
+        font-size: 1.1rem;
+    }
+
+    .btn-order-pill {
+        padding: 6px 12px;
+        font-size: 0.78rem;
+    }
+
+    .badge-category,
+    .status-badge {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+    }
+
+    .hero-avatar {
+        width: 55px;
+        height: 55px;
+        font-size: 1.4rem;
+    }
+
+    .hero-text h1 {
+        font-size: 1.4rem;
+    }
+
+    .tab-btn {
+        font-size: 0.76rem;
+        padding: 6px 10px;
+    }
+
+    footer {
+        padding: 18px 4%;
+    }
+}

@@ -853,21 +853,75 @@ body {
     }
 }
 
-/* Responsive adjustments */
+/* =============================================
+   MOBILE WARNING — Admin panel is desktop only
+   ============================================= */
+#mobile-warning-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0a0a0a;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem;
+}
+
+#mobile-warning-box {
+    animation: flash-warn 0.9s ease-in-out infinite alternate;
+    max-width: 340px;
+}
+
+#mobile-warning-box i {
+    font-size: 5rem;
+    color: var(--main-color);
+    display: block;
+    margin-bottom: 1.2rem;
+}
+
+#mobile-warning-box h2 {
+    font-size: 1.5rem;
+    color: var(--main-color);
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+#mobile-warning-box p {
+    color: #888;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+@keyframes flash-warn {
+    from {
+        opacity: 0.35;
+        transform: scale(0.96);
+        text-shadow: 0 0 0px transparent;
+    }
+    to {
+        opacity: 1;
+        transform: scale(1.02);
+        text-shadow: 0 0 20px rgba(255, 159, 13, 0.6);
+    }
+}
+
 @media (max-width: 768px) {
-    .dashboard-heading h1 {
-        font-size: 2rem;
+    /* Show full-screen warning — hide all panel content */
+    #mobile-warning-overlay {
+        display: flex;
     }
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-    .admin-header {
-        padding: 15px 4%;
-    }
-    .profile-info {
-        display: none;
-    }
-    .btn-visit-site span {
-        display: none;
+
+    .admin-header,
+    .admin-wrapper,
+    .sidebar,
+    main,
+    .modal-backdrop,
+    .toast-container {
+        display: none !important;
     }
 }

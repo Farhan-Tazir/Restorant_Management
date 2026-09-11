@@ -308,13 +308,20 @@ app.get('/api/user/favorites', async (req, res) => {
     }
 });
 
-// Start Express Server
-initDatabase().then(() => {
+// Initialize database
+initDatabase();
+
+// Export Express app for Vercel
+module.exports = app;
+
+// Start server only when running locally
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+
     app.listen(PORT, () => {
         console.log(`=======================================================`);
-        console.log(`🚀 Hotel Dashboard Express API running on port ${PORT}`);
-        console.log(`🌐 User Dashboard URL: http://localhost:${PORT}/user-dashboard.html`);
-        console.log(`🌐 Admin Dashboard URL: http://localhost:${PORT}/admin.html`);
+        console.log(`🚀 Restaurant Management API running on port ${PORT}`);
+        console.log(`🌐 http://localhost:${PORT}`);
         console.log(`=======================================================`);
     });
-});
+}
