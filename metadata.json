@@ -1,0 +1,6 @@
+{
+  "name": "Restaurant Management",
+  "description": "Online restaurant website with interactive ordering, menu management, customer dashboard, and admin panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

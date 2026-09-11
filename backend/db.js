@@ -1,7 +1,7 @@
 // backend/db.js - SQL Database Connection & Data Store Provider
 
 const mysql = require('mysql2/promise');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // In-Memory Fallback State (Simulates SQL database when DB server is not active)
 const inMemoryDatabase = {
@@ -10,7 +10,7 @@ const inMemoryDatabase = {
             id: 1,
             full_name: 'Farhan Tazir',
             email: 'farhan@example.com',
-            password_hash: '$2b$10$e8w/u11m20JzUo2N4N.E4eO8h9V8pZ3k2A1s3d4f5g6h7j8k9l',
+            password_hash: bcrypt.hashSync('password123', 10),
             phone: '+92 310 3546086',
             address: 'House #12, Hotel Springs Avenue, Block 5, City',
             preferred_payment: 'Cash on Delivery',
@@ -76,14 +76,21 @@ let isConnected = false;
 
 // Initialize Database Connection Pool
 async function initDatabase() {
+    if (!process.env.DB_HOST && !process.env.DATABASE_URL) {
+        isConnected = false;
+        console.log('[SQL Database] Operating in standalone SQL API fallback mode (no DB_HOST configured).');
+        return;
+    }
+
     const dbConfig = {
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST,
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'hotel_db',
         waitForConnections: true,
         connectionLimit: 10,
-        queueLimit: 0
+        queueLimit: 0,
+        connectTimeout: 2000
     };
 
     try {

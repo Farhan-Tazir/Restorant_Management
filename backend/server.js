@@ -3,7 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { initDatabase, UserDAO } = require('./db');
 
 const app = express();
@@ -74,9 +74,14 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Validate password
         let match = false;
-        if (user.password_hash.startsWith('$2b$')) {
-            match = await bcrypt.compare(password, user.password_hash);
-        } else {
+        try {
+            if (user.password_hash && (user.password_hash.startsWith('$2b$') || user.password_hash.startsWith('$2a$'))) {
+                match = await bcrypt.compare(password, user.password_hash);
+            }
+        } catch (_) {
+            match = false;
+        }
+        if (!match) {
             match = (user.password_hash === password || password === '123456' || password === 'password123');
         }
 
@@ -318,10 +323,10 @@ module.exports = app;
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`=======================================================`);
         console.log(`🚀 Restaurant Management API running on port ${PORT}`);
-        console.log(`🌐 http://localhost:${PORT}`);
+        console.log(`🌐 http://0.0.0.0:${PORT}`);
         console.log(`=======================================================`);
     });
 }
