@@ -15,37 +15,146 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Server-Side Active Sessions (token -> user session)
+// Server-Side Session Security & Token Configuration
+const SESSION_SECRET = process.env.SESSION_SECRET || 'hotel_mgmt_secure_session_secret_2026_x89a';
 const activeSessions = new Map();
 
+/**
+ * Creates a cryptographically signed, tamper-proof session token.
+ * Format: payloadBase64Url.signatureBase64Url
+ * Works seamlessly across both in-memory state and Vercel serverless instances.
+ */
 function createSession(user) {
-    const token = crypto.randomBytes(32).toString('hex');
-    const role = user.role || (user.email && (user.email.toLowerCase() === '031035farhan@gmail.com' || user.email.toLowerCase() === 'admin@example.com') ? 'admin' : 'customer');
-    const session = {
+    const role = user.role || 'customer';
+    const payload = {
         id: user.id,
         email: user.email,
         full_name: user.full_name,
         role: role,
         phone: user.phone || '',
-        createdAt: Date.now()
+        iat: Date.now(),
+        exp: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days expiration
     };
-    activeSessions.set(token, session);
-    return { token, session };
+
+    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('base64url');
+    const token = `${payloadB64}.${signature}`;
+
+    activeSessions.set(token, payload);
+    return { token, session: payload };
 }
 
-// Authentication extraction middleware
-app.use((req, res, next) => {
-    const authHeader = req.headers.authorization;
-    let token = null;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7).trim();
-    } else if (req.headers['x-auth-token']) {
-        token = req.headers['x-auth-token'];
+/**
+ * Verifies and decodes a signed session token.
+ * Rejects any fabricated, altered, or expired tokens.
+ */
+async function verifySessionToken(token) {
+    if (!token || typeof token !== 'string') return null;
+
+    // Check fast in-memory active sessions first
+    if (activeSessions.has(token)) {
+        const cached = activeSessions.get(token);
+        if (cached && cached.exp > Date.now()) {
+            return cached;
+        }
+        activeSessions.delete(token);
     }
 
-    if (token && activeSessions.has(token)) {
-        req.user = activeSessions.get(token);
-        req.authToken = token;
+    // Verify cryptographic HMAC signature for serverless/cold-start requests
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+
+    const [payloadB64, signature] = parts;
+    const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(payloadB64).digest('base64url');
+
+    try {
+        const sigBuffer = Buffer.from(signature);
+        const expectedBuffer = Buffer.from(expectedSig);
+        if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+            return null; // Tampered or invalid signature
+        }
+
+        const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+        if (!payload || !payload.exp || payload.exp < Date.now()) {
+            return null; // Expired
+        }
+
+        // Validate user against server database/in-memory records for authoritative role verification
+        const user = await UserDAO.findById(payload.id);
+        if (!user) return null;
+
+        // Authoritative role from server record
+        payload.role = user.role || 'customer';
+        payload.full_name = user.full_name || payload.full_name;
+        payload.phone = user.phone || payload.phone;
+
+        activeSessions.set(token, payload);
+        return payload;
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * Extracts authentication token from Bearer header, X-Auth-Token, HttpOnly Cookie, or query param.
+ */
+function extractToken(req) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const t = authHeader.substring(7).trim();
+        if (t) return t;
+    }
+
+    if (req.headers['x-auth-token']) {
+        const t = String(req.headers['x-auth-token']).trim();
+        if (t) return t;
+    }
+
+    if (req.headers.cookie) {
+        const cookies = req.headers.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, ...valParts] = cookie.trim().split('=');
+            if (name === 'auth_token') {
+                const val = decodeURIComponent(valParts.join('=')).trim();
+                if (val) return val;
+            }
+        }
+    }
+
+    if (req.query && req.query.token) {
+        return String(req.query.token).trim();
+    }
+
+    return null;
+}
+
+/**
+ * Sets secure HttpOnly cookie for session token.
+ */
+function setAuthCookie(res, token) {
+    const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+    res.setHeader('Set-Cookie', `auth_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}${isProduction ? '; Secure' : ''}`);
+}
+
+/**
+ * Clears HttpOnly authentication cookie.
+ */
+function clearAuthCookie(res) {
+    res.setHeader('Set-Cookie', `auth_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+}
+
+// Authentication extraction middleware (runs on all requests)
+app.use(async (req, res, next) => {
+    const token = extractToken(req);
+    if (token) {
+        const userSession = await verifySessionToken(token);
+        if (userSession) {
+            req.user = userSession;
+            req.authToken = token;
+        } else {
+            req.user = null;
+            req.authToken = null;
+        }
     } else {
         req.user = null;
         req.authToken = null;
@@ -81,7 +190,94 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-// Serve frontend static files
+// --- SERVER-PROTECTED ADMINISTRATOR PORTAL ROUTE ---
+// Accessible strictly to authenticated administrators.
+// Prevents static file exposure and unauthorized direct navigation.
+app.get(['/admin', '/admin.html'], (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+
+    if (!req.user) {
+        return res.status(401).send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>401 - Authentication Required | Hotel Admin</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0e0e0e; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; padding: 20px; margin: 0; }
+        .auth-card { background: #181818; border: 1px solid #2d2d2d; padding: 48px 36px; border-radius: 16px; max-width: 460px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .auth-card i { font-size: 54px; color: #ff9f0d; margin-bottom: 16px; display: inline-block; }
+        h1 { color: #ff9f0d; font-size: 1.7rem; margin: 0 0 12px; font-weight: 700; }
+        p { color: #aaa; font-size: 14px; margin: 0 0 28px; line-height: 1.6; }
+        .btn { display: inline-block; background: #ff9f0d; color: #fff; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: 600; transition: 0.3s; }
+        .btn:hover { background: #e08906; transform: translateY(-2px); }
+    </style>
+    <script>
+        setTimeout(function() {
+            window.location.replace('/login.html?redirect=admin.html');
+        }, 1600);
+    </script>
+</head>
+<body>
+    <div class="auth-card">
+        <i class='bx bx-lock-alt'></i>
+        <h1>Authentication Required</h1>
+        <p>You must be logged in as an administrator to access the Hotel Administrator Panel. Redirecting to login...</p>
+        <a href="/login.html?redirect=admin.html" class="btn">Proceed to Login</a>
+    </div>
+</body>
+</html>
+        `);
+    }
+
+    if (req.user.role !== 'admin') {
+        return res.status(403).send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>403 - Access Denied | Hotel Admin</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0e0e0e; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; padding: 20px; margin: 0; }
+        .auth-card { background: #181818; border: 1px solid #e74c3c; padding: 48px 36px; border-radius: 16px; max-width: 460px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .auth-card i { font-size: 54px; color: #e74c3c; margin-bottom: 16px; display: inline-block; }
+        h1 { color: #e74c3c; font-size: 1.7rem; margin: 0 0 12px; font-weight: 700; }
+        p { color: #aaa; font-size: 14px; margin: 0 0 28px; line-height: 1.6; }
+        .btn { display: inline-block; background: #ff9f0d; color: #fff; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: 600; transition: 0.3s; }
+        .btn:hover { background: #e08906; transform: translateY(-2px); }
+    </style>
+    <script>
+        setTimeout(function() {
+            window.location.replace('/user-dashboard.html');
+        }, 2000);
+    </script>
+</head>
+<body>
+    <div class="auth-card">
+        <i class='bx bx-shield-x'></i>
+        <h1>Access Denied (403)</h1>
+        <p>Your account does not have administrator privileges. Only authorized managers may access this portal. Redirecting to user dashboard...</p>
+        <a href="/user-dashboard.html" class="btn">Return to User Dashboard</a>
+    </div>
+</body>
+</html>
+        `);
+    }
+
+    // Authenticated Administrator: Serve protected admin dashboard
+    res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+});
+
+// Serve frontend static public files (admin.html is safely kept inside backend/views/)
 app.use(express.static(path.join(__dirname, '..')));
 
 // --- AUTHENTICATION API ENDPOINTS ---
@@ -95,14 +291,21 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Full name, email, and password are required' });
         }
 
+        if (typeof password !== 'string' || password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+        }
+
         const existingUser = await UserDAO.findByEmail(email);
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'An account with this email address already exists' });
         }
 
+        // New registrations are always assigned 'customer' role
         const role = 'customer';
         const newUser = await UserDAO.register({ full_name, email, phone, password, role });
         const { token } = createSession({ ...newUser, role });
+
+        setAuthCookie(res, token);
 
         res.json({
             success: true,
@@ -120,7 +323,7 @@ app.post('/api/auth/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Error during registration:', error);
-        res.status(500).json({ success: false, message: 'Server error during account registration' });
+        res.status(500).json({ success: false, message: error.message || 'Server error during account registration' });
     }
 });
 
@@ -128,7 +331,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const identifier = email || req.body.phone || '';
+        const identifier = (email || req.body.phone || '').trim();
 
         if (!identifier || !password) {
             return res.status(400).json({ success: false, message: 'Email/phone and password are required' });
@@ -143,25 +346,24 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
         }
 
-        // Validate password
+        // Strict password verification using bcrypt only. No hardcoded or universal bypass passwords.
         let match = false;
-        try {
-            if (user.password_hash && (user.password_hash.startsWith('$2b$') || user.password_hash.startsWith('$2a$'))) {
+        if (user.password_hash) {
+            try {
                 match = await bcrypt.compare(password, user.password_hash);
+            } catch (_) {
+                match = false;
             }
-        } catch (_) {
-            match = false;
-        }
-        if (!match) {
-            match = (user.password_hash === password || password === '123456' || password === 'password123' || password === 'admin123');
         }
 
         if (!match) {
-            return res.status(401).json({ success: false, message: 'Invalid password. Please try again.' });
+            return res.status(401).json({ success: false, message: 'Invalid credentials. Please check your password.' });
         }
 
-        const role = user.role || (user.email && user.email.toLowerCase() === 'admin@example.com' ? 'admin' : 'customer');
+        const role = user.role || 'customer';
         const { token } = createSession({ ...user, role });
+
+        setAuthCookie(res, token);
 
         res.json({
             success: true,
@@ -190,6 +392,7 @@ app.post('/api/auth/logout', (req, res) => {
     if (req.authToken) {
         activeSessions.delete(req.authToken);
     }
+    clearAuthCookie(res);
     res.json({ success: true, message: 'Logged out successfully' });
 });
 

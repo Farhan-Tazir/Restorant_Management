@@ -304,12 +304,17 @@ button:hover{
 
             const data = await response.json();
             if (!response.ok || !data.success) {
-                throw new Error(data.message || 'Registration failed');
+                msgEl.className = "msg-status error";
+                msgEl.innerText = data.message || 'Registration failed';
+                btn.disabled = false;
+                return;
             }
 
-            // Sync with local HotalStore
-            window.HotalStore.registerUser({ full_name: name, email, phone, password: pass1 });
-            window.HotalStore.loginUser(email, pass1);
+            // Sync with local HotalStore with server token
+            window.HotalStore.setCurrentUser({
+                ...data.user,
+                token: data.token
+            });
 
             msgEl.className = "msg-status success";
             msgEl.innerText = "Account created successfully! Redirecting...";

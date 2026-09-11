@@ -261,11 +261,7 @@ button:hover{
     }
 
     function getRedirectDestination(user) {
-        const isAdminUser = Boolean(
-            (user && user.role === 'admin') ||
-            (user && user.email && user.email.toLowerCase() === '031035farhan@gmail.com') ||
-            (window.HotalStore && window.HotalStore.isAdmin())
-        );
+        const isAdminUser = Boolean(user && user.role === 'admin');
 
         if (isAdminUser) {
             return 'admin.html';
@@ -290,6 +286,8 @@ button:hover{
         msgEl.className = "msg-status";
         msgEl.innerText = "Authenticating...";
 
+        let networkFailed = false;
+
         try {
             // Attempt server API login
             const res = await fetch('/api/auth/login', {
@@ -300,22 +298,29 @@ button:hover{
 
             const data = await res.json();
             if (!res.ok || !data.success) {
-                throw new Error(data.message || 'Invalid email/phone or password');
+                msgEl.className = "msg-status error";
+                msgEl.innerText = data.message || 'Invalid email/phone or password';
+                btn.disabled = false;
+                return;
             }
 
-            // Sync user session locally
-            window.HotalStore.setCurrentUser(data.user);
+            // Sync user session locally including server-issued signed token
+            const sessionUser = {
+                ...data.user,
+                token: data.token
+            };
+            window.HotalStore.setCurrentUser(sessionUser);
 
             msgEl.className = "msg-status success";
             msgEl.innerText = "Login successful! Welcome back...";
 
-            const destination = getRedirectDestination(data.user);
+            const destination = getRedirectDestination(sessionUser);
             setTimeout(() => {
                 window.location.href = destination;
             }, 800);
 
         } catch (err) {
-            // Fallback to HotalStore local login
+            // Network fetch failure: Only offline fallback for regular customers
             try {
                 const user = window.HotalStore.loginUser(identifier, password);
                 msgEl.className = "msg-status success";
@@ -327,7 +332,7 @@ button:hover{
                 }, 800);
             } catch (localErr) {
                 msgEl.className = "msg-status error";
-                msgEl.innerText = localErr.message || err.message || "Invalid credentials. Please check your details.";
+                msgEl.innerText = localErr.message || "Unable to connect to server. Please try again.";
                 btn.disabled = false;
             }
         }

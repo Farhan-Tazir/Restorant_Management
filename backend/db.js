@@ -3,16 +3,19 @@
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '031035farhan@gmail.com').toLowerCase().trim();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'farhan1709';
+
 // In-Memory Fallback State (Simulates SQL database when DB server is not active)
 const inMemoryDatabase = {
     users: [
         {
             id: 1,
-            full_name: 'Farhan Tazir',
-            email: 'farhan@example.com',
-            password_hash: bcrypt.hashSync('password123', 10),
+            full_name: 'Demo Customer',
+            email: 'customer@example.com',
+            password_hash: bcrypt.hashSync(process.env.DEMO_PASSWORD || 'customer123', 10),
             role: 'customer',
-            phone: '+92 310 3546086',
+            phone: '+92 300 1234567',
             address: 'House #12, Hotel Springs Avenue, Block 5, City',
             preferred_payment: 'Cash on Delivery',
             reward_points: 480,
@@ -21,9 +24,9 @@ const inMemoryDatabase = {
         },
         {
             id: 2,
-            full_name: 'Farhan (Admin)',
-            email: '031035farhan@gmail.com',
-            password_hash: bcrypt.hashSync('farhan1709', 10),
+            full_name: 'Restaurant Administrator',
+            email: ADMIN_EMAIL,
+            password_hash: bcrypt.hashSync(ADMIN_PASSWORD, 10),
             role: 'admin',
             phone: '+92 310 3546086',
             address: 'Restaurant Headquarters, Suite 101',
@@ -44,8 +47,8 @@ const inMemoryDatabase = {
             id: 1,
             order_number: 'HTL-9402',
             user_id: 1,
-            customer_name: 'Farhan Tazir',
-            phone: '+92 310 3546086',
+            customer_name: 'Demo Customer',
+            phone: '+92 300 1234567',
             order_type: 'delivery',
             table_number: '',
             delivery_address: 'House #12, Hotel Springs Avenue, Block 5, City',
@@ -65,8 +68,8 @@ const inMemoryDatabase = {
             id: 2,
             order_number: 'HTL-8910',
             user_id: 1,
-            customer_name: 'Farhan Tazir',
-            phone: '+92 310 3546086',
+            customer_name: 'Demo Customer',
+            phone: '+92 300 1234567',
             order_type: 'dine_in',
             table_number: 'Table #05',
             delivery_address: '',
@@ -163,7 +166,10 @@ const UserDAO = {
     },
 
     async register(userData) {
-        const passwordHash = await bcrypt.hash(userData.password || '123456', 10);
+        if (!userData.password || typeof userData.password !== 'string' || userData.password.length < 6) {
+            throw new Error('Password must be at least 6 characters long.');
+        }
+        const passwordHash = await bcrypt.hash(userData.password, 10);
         if (isConnected && dbPool) {
             try {
                 const [result] = await dbPool.query(
@@ -191,7 +197,7 @@ const UserDAO = {
             full_name: userData.full_name,
             email: userData.email,
             password_hash: passwordHash,
-            role: userData.role || 'customer',
+            role: 'customer',
             phone: userData.phone || '',
             address: userData.address || '',
             preferred_payment: 'Cash on Delivery',

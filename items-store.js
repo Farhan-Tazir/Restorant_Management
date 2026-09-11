@@ -50,28 +50,15 @@ const DEFAULT_ITEMS = [
 const DEFAULT_USERS = [
     {
         id: 'user-1',
-        full_name: 'Farhan Tazir',
-        email: 'farhan@example.com',
-        phone: '+92 310 3546086',
-        password: 'password123',
+        full_name: 'Demo Customer',
+        email: 'customer@example.com',
+        phone: '+92 300 1234567',
+        password: 'customer123',
         role: 'customer',
         address: 'House #12, Hotel Springs Avenue, Block 5, City',
         preferred_payment: 'Cash on Delivery',
         reward_points: 480,
         loyalty_badge: 'Gold Member',
-        created_at: new Date().toISOString()
-    },
-    {
-        id: 'user-admin',
-        full_name: 'Farhan (Admin)',
-        email: '031035farhan@gmail.com',
-        phone: '+92 310 3546086',
-        password: 'farhan1709',
-        role: 'admin',
-        address: 'Restaurant Headquarters, Suite 101',
-        preferred_payment: 'Corporate Account',
-        reward_points: 9999,
-        loyalty_badge: 'Super Administrator',
         created_at: new Date().toISOString()
     }
 ];
@@ -81,8 +68,8 @@ const DEFAULT_ORDERS = [
         id: 'HTL-9402',
         order_number: 'HTL-9402',
         user_id: 'user-1',
-        customer_name: 'Farhan Tazir',
-        phone: '+92 310 3546086',
+        customer_name: 'Demo Customer',
+        phone: '+92 300 1234567',
         order_type: 'delivery',
         table_number: '',
         delivery_address: 'House #12, Hotel Springs Avenue, Block 5, City',
@@ -102,8 +89,8 @@ const DEFAULT_ORDERS = [
         id: 'HTL-8910',
         order_number: 'HTL-8910',
         user_id: 'user-1',
-        customer_name: 'Farhan Tazir',
-        phone: '+92 310 3546086',
+        customer_name: 'Demo Customer',
+        phone: '+92 300 1234567',
         order_type: 'dine_in',
         table_number: 'Table #05',
         delivery_address: '',
@@ -219,20 +206,6 @@ function getUsers() {
         if (!Array.isArray(users)) {
             users = [...DEFAULT_USERS];
         }
-
-        // Ensure current official admin credentials exist
-        const adminIndex = users.findIndex(u => u.email && u.email.toLowerCase() === '031035farhan@gmail.com');
-        if (adminIndex === -1) {
-            users.push(DEFAULT_USERS[1]);
-            saveUsers(users);
-        } else {
-            if (users[adminIndex].password !== 'farhan1709' || users[adminIndex].role !== 'admin') {
-                users[adminIndex].password = 'farhan1709';
-                users[adminIndex].role = 'admin';
-                saveUsers(users);
-            }
-        }
-
         return users;
     } catch (e) {
         return DEFAULT_USERS;
@@ -261,7 +234,7 @@ function registerUser(userData) {
         email: userData.email.trim().toLowerCase(),
         phone: userData.phone ? userData.phone.trim() : '',
         password: userData.password,
-        role: userData.role || 'customer',
+        role: 'customer',
         address: userData.address || '',
         preferred_payment: 'Cash on Delivery',
         reward_points: 100,
@@ -284,6 +257,10 @@ function loginUser(identifier, password) {
 
     if (!user) {
         throw new Error('Invalid email/phone or password');
+    }
+
+    if (user.role === 'admin') {
+        throw new Error('Administrator authentication must be performed online via the server.');
     }
 
     setCurrentUser(user);
@@ -312,13 +289,8 @@ function isLoggedIn() {
 function isAdmin() {
     const user = getCurrentUser();
     if (!user) return false;
-    return Boolean(
-        user.role === 'admin' || 
-        (user.email && (
-            user.email.toLowerCase() === '031035farhan@gmail.com' || 
-            user.email.toLowerCase() === 'admin@example.com'
-        ))
-    );
+    // Client-side visual helper. Server is the authoritative gatekeeper.
+    return user.role === 'admin';
 }
 
 function getAuthHeaders() {
@@ -344,15 +316,15 @@ function setCurrentUser(user) {
 function logoutUser() {
     try {
         const user = getCurrentUser();
+        const headers = { 'Content-Type': 'application/json' };
         if (user && user.token) {
-            fetch('/api/auth/logout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`
-                }
-            }).catch(() => {});
+            headers['Authorization'] = `Bearer ${user.token}`;
         }
+        fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: headers
+        }).catch(() => {});
+
         localStorage.removeItem(CURRENT_USER_KEY);
         window.dispatchEvent(new CustomEvent('hotal_current_user_updated', { detail: null }));
     } catch (e) {}

@@ -1,17 +1,33 @@
 // admin.js - Logic for Hotel Admin Dashboard (Menu & Orders/Payments Management)
 
-// Authentication & Admin Authorization Guard
-(function() {
+// Authentication & Admin Authorization Guard: Verify session with the server
+(async function verifyAdminAuth() {
     if (typeof window === 'undefined') return;
-    const store = window.HotalStore;
-    if (!store || !store.isLoggedIn()) {
-        window.location.replace('login.html?redirect=admin.html');
-        return;
-    }
-    if (!store.isAdmin()) {
-        alert('Access denied: Admin privileges required.');
-        window.location.replace('user-dashboard.html');
-        return;
+    try {
+        const headers = window.HotalStore ? window.HotalStore.getAuthHeaders() : {};
+        const res = await fetch('/api/auth/me', { headers });
+        if (res.status === 401) {
+            window.location.replace('login.html?redirect=admin.html');
+            return;
+        }
+        if (res.status === 403) {
+            alert('Access denied: Administrator privileges required.');
+            window.location.replace('user-dashboard.html');
+            return;
+        }
+        const data = await res.json();
+        if (!data.success || !data.user || data.user.role !== 'admin') {
+            alert('Access denied: Administrator privileges required.');
+            window.location.replace('user-dashboard.html');
+            return;
+        }
+    } catch (_) {
+        const store = window.HotalStore;
+        if (!store || !store.isLoggedIn()) {
+            window.location.replace('login.html?redirect=admin.html');
+        } else if (!store.isAdmin()) {
+            window.location.replace('user-dashboard.html');
+        }
     }
 })();
 
@@ -429,6 +445,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/orders/all', {
                 headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : {}
             });
+            if (res.status === 401) {
+                window.location.replace('login.html?redirect=admin.html');
+                return;
+            }
+            if (res.status === 403) {
+                alert('Access denied: Administrator privileges required.');
+                window.location.replace('user-dashboard.html');
+                return;
+            }
             if (res.ok) {
                 const data = await res.json();
                 if (data.success && Array.isArray(data.orders) && window.HotalStore) {
