@@ -867,3 +867,232 @@ header.sticky{
         padding: 0 4%;
     }
 }
+
+/* ============ 300px BREAKPOINT (Ultra-compact mobile / small phones) ============ */
+@media (max-width: 300px) {
+    :root {
+        --big-font: 1.5rem;
+        --h2-font: 1.25rem;
+        --p-font: 11px;
+    }
+
+    html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    header {
+        padding: 8px 3% !important;
+    }
+
+    .logo {
+        font-size: 17px;
+    }
+
+    .nav-icons {
+        gap: 2px;
+    }
+
+    .nav-icons a i,
+    #menu-icon {
+        font-size: 18px;
+        padding: 2px;
+    }
+
+    .home {
+        height: auto;
+        min-height: 100vh;
+        padding: 70px 3% 20px;
+    }
+
+    .home-text h1 {
+        font-size: 1.35rem;
+        line-height: 1.25;
+        margin-bottom: 12px;
+    }
+
+    .home-text .btn,
+    .home-text .btn2 {
+        display: block;
+        width: 100%;
+        margin: 6px 0;
+        padding: 7px 12px;
+        font-size: 11px;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .home-img img {
+        width: 100%;
+        max-width: 190px;
+        margin: 10px auto 0;
+        display: block;
+    }
+
+    .container {
+        padding: 25px 3%;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .container-box {
+        padding: 12px 10px;
+    }
+
+    .container-box img {
+        width: 44px;
+        height: auto;
+    }
+
+    .container-box h3 {
+        font-size: 14px;
+        margin: 8px 0;
+    }
+
+    .about {
+        padding: 25px 3%;
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
+    .about-text h2 {
+        font-size: 1.25rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .about-text p {
+        font-size: 11px;
+        line-height: 18px;
+        margin-bottom: 1.2rem;
+    }
+
+    .about-text .btn {
+        padding: 7px 14px;
+        font-size: 11px;
+    }
+
+    .shop {
+        padding: 25px 3%;
+    }
+
+    .middle-text h4 {
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .middle-text h2 {
+        font-size: 1.25rem;
+    }
+
+    .shop-content {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 1.5rem;
+    }
+
+    .item-card {
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .item-image-wrapper {
+        height: 90px;
+        margin-bottom: 8px;
+    }
+
+    .item-title {
+        font-size: 0.9rem;
+    }
+
+    .item-desc {
+        font-size: 0.68rem;
+        line-height: 1.3;
+        -webkit-line-clamp: 2;
+    }
+
+    .item-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .item-price {
+        font-size: 1rem;
+    }
+
+    .item-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    .btn-order-pill {
+        flex: 1;
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        justify-content: center;
+    }
+
+    .icon-btn.fav-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+    }
+
+    .badge-category,
+    .status-badge {
+        font-size: 0.6rem;
+        padding: 2px 6px;
+    }
+
+    .contact {
+        padding: 25px 3%;
+    }
+
+    .contact-info {
+        gap: 0.8rem;
+    }
+
+    .first-info .logo {
+        font-size: 16px;
+    }
+
+    .first-info p {
+        font-size: 11px;
+        line-height: 18px;
+    }
+
+    .social-icon a i {
+        font-size: 16px;
+        margin-right: 4px;
+    }
+
+    .second-info h4,
+    .third-info h4,
+    .fourth-info h4,
+    .five h4 {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .second-info p,
+    .third-info p,
+    .fourth-info p,
+    .five p {
+        font-size: 11px;
+        line-height: 18px;
+    }
+
+    .end-text p {
+        font-size: 10px;
+        padding: 15px 3%;
+    }
+
+    .scroll-top {
+        bottom: 10px;
+        right: 10px;
+        padding: 5px 7px;
+        font-size: 14px;
+    }
+}

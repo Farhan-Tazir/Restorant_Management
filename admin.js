@@ -26,6 +26,10 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+// Forward declaration of render functions accessible to switchAdminTab
+let renderAdminOrders = async function() {};
+let renderMenu = function() {};
+
 // Global Tab Switching Handler
 window.switchAdminTab = function(tabName) {
     const menuSection = document.getElementById('admin-menu-section');
@@ -34,24 +38,41 @@ window.switchAdminTab = function(tabName) {
     const ordersTabBtn = document.getElementById('tab-btn-orders');
 
     if (tabName === 'orders') {
-        menuSection.style.display = 'none';
-        ordersSection.style.display = 'block';
-        ordersTabBtn.style.background = 'var(--other-color)';
-        ordersTabBtn.style.color = 'var(--main-color)';
-        ordersTabBtn.style.borderColor = 'var(--main-color)';
-        menuTabBtn.style.background = '#222';
-        menuTabBtn.style.color = '#ccc';
-        menuTabBtn.style.borderColor = '#444';
-        renderAdminOrders();
+        if (menuSection) menuSection.style.display = 'none';
+        if (ordersSection) ordersSection.style.display = 'block';
+        if (ordersTabBtn) {
+            ordersTabBtn.style.background = 'var(--other-color)';
+            ordersTabBtn.style.color = 'var(--main-color)';
+            ordersTabBtn.style.borderColor = 'var(--main-color)';
+        }
+        if (menuTabBtn) {
+            menuTabBtn.style.background = '#222';
+            menuTabBtn.style.color = '#ccc';
+            menuTabBtn.style.borderColor = '#444';
+        }
+        if (typeof window.renderAdminOrders === 'function') {
+            window.renderAdminOrders();
+        } else if (typeof renderAdminOrders === 'function') {
+            renderAdminOrders();
+        }
     } else {
-        menuSection.style.display = 'block';
-        ordersSection.style.display = 'none';
-        menuTabBtn.style.background = 'var(--other-color)';
-        menuTabBtn.style.color = 'var(--main-color)';
-        menuTabBtn.style.borderColor = 'var(--main-color)';
-        ordersTabBtn.style.background = '#222';
-        ordersTabBtn.style.color = '#ccc';
-        ordersTabBtn.style.borderColor = '#444';
+        if (menuSection) menuSection.style.display = 'block';
+        if (ordersSection) ordersSection.style.display = 'none';
+        if (menuTabBtn) {
+            menuTabBtn.style.background = 'var(--other-color)';
+            menuTabBtn.style.color = 'var(--main-color)';
+            menuTabBtn.style.borderColor = 'var(--main-color)';
+        }
+        if (ordersTabBtn) {
+            ordersTabBtn.style.background = '#222';
+            ordersTabBtn.style.color = '#ccc';
+            ordersTabBtn.style.borderColor = '#444';
+        }
+        if (typeof window.renderMenu === 'function') {
+            window.renderMenu();
+        } else if (typeof renderMenu === 'function') {
+            renderMenu();
+        }
     }
 };
 
@@ -151,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderMenu() {
+    renderMenu = function() {
         if (!itemsGrid) return;
         const items = window.HotalStore.getItems();
         updateStats(items);
@@ -449,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function renderAdminOrders() {
+    renderAdminOrders = async function() {
         const tableBody = document.getElementById('admin-orders-table-body');
         if (!tableBody) return;
 
@@ -629,6 +650,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'hotal_items') renderMenu();
         if (e.key === 'hotal_orders') renderAdminOrders();
     });
+
+    window.renderMenu = renderMenu;
+    window.renderAdminOrders = renderAdminOrders;
 
     window.addEventListener('hotal_items_updated', renderMenu);
     window.addEventListener('hotal_orders_updated', renderAdminOrders);

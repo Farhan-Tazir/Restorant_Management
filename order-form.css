@@ -628,3 +628,176 @@ legend i {
         margin-top: 4px;
     }
 }
+
+/* ============ 400px BREAKPOINT ============ */
+@media (max-width: 400px) {
+    header {
+        padding: 12px 4%;
+    }
+    .page-shell {
+        padding: 85px 3% 30px;
+    }
+    .order-card {
+        padding: 16px 12px;
+    }
+    .order-title {
+        font-size: 1.5rem;
+    }
+    .order-subtitle {
+        font-size: 12px;
+    }
+    .menu-item-card {
+        padding: 10px;
+        gap: 10px;
+    }
+}
+
+/* ============ 300px BREAKPOINT (Ultra-compact mobile / small phones) ============ */
+@media (max-width: 300px) {
+    html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    header {
+        padding: 8px 3% !important;
+    }
+
+    .logo {
+        font-size: 16px;
+    }
+
+    .nav-icons {
+        gap: 2px;
+    }
+
+    .nav-icons a i,
+    #menu-icon {
+        font-size: 18px;
+        padding: 2px;
+    }
+
+    .page-shell {
+        padding: 70px 3% 20px;
+    }
+
+    .order-card {
+        padding: 12px 10px;
+        border-radius: 12px;
+    }
+
+    .order-title {
+        font-size: 1.25rem;
+    }
+
+    .order-subtitle {
+        font-size: 11px;
+        margin-bottom: 15px;
+    }
+
+    .order-type-tabs {
+        flex-direction: column;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 10px;
+    }
+
+    .order-tab-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        padding: 7px 8px;
+        font-size: 0.72rem;
+    }
+
+    .section-subheading {
+        font-size: 0.92rem;
+        margin: 15px 0 10px;
+    }
+
+    .form-group label {
+        font-size: 0.72rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 11px;
+        padding: 7px 9px;
+    }
+
+    .menu-item-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px 8px;
+        gap: 8px;
+        border-radius: 10px;
+    }
+
+    .item-thumb {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+    }
+
+    .item-meta {
+        width: 100%;
+    }
+
+    .item-name {
+        font-size: 0.85rem;
+    }
+
+    .item-desc {
+        font-size: 0.68rem;
+    }
+
+    .item-cost {
+        font-size: 0.85rem;
+    }
+
+    .quantity-stepper {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 6px;
+    }
+
+    .stepper-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+    }
+
+    .qty-input {
+        width: 32px;
+        font-size: 12px;
+    }
+
+    .order-summary-box {
+        padding: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        border-radius: 10px;
+    }
+
+    .summary-label {
+        font-size: 0.82rem;
+    }
+
+    .summary-total {
+        font-size: 1.25rem;
+    }
+
+    .btn-submit {
+        padding: 9px 12px;
+        font-size: 0.8rem;
+    }
+
+    .form-message {
+        font-size: 0.75rem;
+    }
+}

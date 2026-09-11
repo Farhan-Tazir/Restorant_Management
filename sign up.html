@@ -146,6 +146,66 @@ button:hover{
 }
 .msg-status.success { color: #2ecc71; }
 .msg-status.error { color: #e74c3c; }
+
+/* Responsive Breakpoints */
+@media (max-width: 480px) {
+    .floating-img {
+        display: none;
+    }
+    form {
+        width: 92%;
+        max-width: 400px;
+        padding: 26px 18px;
+        margin: 15px auto;
+    }
+}
+
+/* ============ 300px BREAKPOINT (Ultra-compact mobile / small phones) ============ */
+@media (max-width: 300px) {
+    body {
+        padding: 8px;
+    }
+    .floating-img {
+        display: none;
+    }
+    form {
+        width: 100%;
+        max-width: 275px;
+        padding: 16px 12px;
+        margin: 8px auto;
+        border-radius: 12px;
+    }
+    h2 {
+        font-size: 1.2rem;
+        margin-bottom: 12px;
+    }
+    .input-box {
+        height: 38px;
+        padding: 6px 10px;
+        margin-bottom: 9px;
+        border-radius: 20px;
+    }
+    .input-box i {
+        font-size: 15px;
+        margin-right: 6px;
+    }
+    input {
+        font-size: 12px;
+    }
+    .links a {
+        font-size: 11px;
+    }
+    button {
+        height: 38px;
+        font-size: 14px;
+        border-radius: 20px;
+        margin-top: 4px;
+    }
+    .msg-status {
+        font-size: 11px;
+        margin-top: 8px;
+    }
+}
 </style>
 </head>
 

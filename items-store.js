@@ -63,10 +63,10 @@ const DEFAULT_USERS = [
     },
     {
         id: 'user-admin',
-        full_name: 'Admin Manager',
-        email: 'admin@example.com',
-        phone: '+92 300 1234567',
-        password: 'admin123',
+        full_name: 'Farhan (Admin)',
+        email: '031035farhan@gmail.com',
+        phone: '+92 310 3546086',
+        password: 'farhan1709',
         role: 'admin',
         address: 'Restaurant Headquarters, Suite 101',
         preferred_payment: 'Corporate Account',
@@ -215,11 +215,25 @@ function resetDefaultItems() {
 function getUsers() {
     try {
         const stored = localStorage.getItem(USERS_STORAGE_KEY);
-        if (!stored) {
-            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
-            return DEFAULT_USERS;
+        let users = stored ? JSON.parse(stored) : null;
+        if (!Array.isArray(users)) {
+            users = [...DEFAULT_USERS];
         }
-        return JSON.parse(stored);
+
+        // Ensure current official admin credentials exist
+        const adminIndex = users.findIndex(u => u.email && u.email.toLowerCase() === '031035farhan@gmail.com');
+        if (adminIndex === -1) {
+            users.push(DEFAULT_USERS[1]);
+            saveUsers(users);
+        } else {
+            if (users[adminIndex].password !== 'farhan1709' || users[adminIndex].role !== 'admin') {
+                users[adminIndex].password = 'farhan1709';
+                users[adminIndex].role = 'admin';
+                saveUsers(users);
+            }
+        }
+
+        return users;
     } catch (e) {
         return DEFAULT_USERS;
     }
@@ -298,7 +312,13 @@ function isLoggedIn() {
 function isAdmin() {
     const user = getCurrentUser();
     if (!user) return false;
-    return Boolean(user.role === 'admin' || (user.email && user.email.toLowerCase() === 'admin@example.com'));
+    return Boolean(
+        user.role === 'admin' || 
+        (user.email && (
+            user.email.toLowerCase() === '031035farhan@gmail.com' || 
+            user.email.toLowerCase() === 'admin@example.com'
+        ))
+    );
 }
 
 function getAuthHeaders() {

