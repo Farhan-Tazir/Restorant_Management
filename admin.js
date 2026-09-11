@@ -1,5 +1,20 @@
 // admin.js - Logic for Hotel Admin Dashboard (Menu & Orders/Payments Management)
 
+// Authentication & Admin Authorization Guard
+(function() {
+    if (typeof window === 'undefined') return;
+    const store = window.HotalStore;
+    if (!store || !store.isLoggedIn()) {
+        window.location.replace('login.html?redirect=admin.html');
+        return;
+    }
+    if (!store.isAdmin()) {
+        alert('Access denied: Admin privileges required.');
+        window.location.replace('user-dashboard.html');
+        return;
+    }
+})();
+
 // Utility function to escape HTML string safely
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -390,7 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchAdminOrdersFromAPI() {
         try {
-            const res = await fetch('/api/orders/all');
+            const res = await fetch('/api/orders/all', {
+                headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : {}
+            });
             if (res.ok) {
                 const data = await res.json();
                 if (data.success && Array.isArray(data.orders) && window.HotalStore) {
@@ -407,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         mergedMap.set(key, {
                             id: key,
                             order_number: key,
-                            user_id: o.user_id || (existing ? existing.user_id : 'user-1'),
+                            user_id: o.user_id || (existing ? existing.user_id : null),
                             customer_name: o.customer_name || (existing ? existing.customer_name : 'Customer'),
                             phone: o.phone || (existing ? existing.phone : ''),
                             order_type: o.order_type || (existing ? existing.order_type : 'delivery'),
@@ -560,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await fetch(`/api/orders/${orderId}/status`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'preparing' })
             });
         } catch (e) {}
@@ -573,7 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await fetch(`/api/orders/${orderId}/status`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: nextStatus })
             });
         } catch (e) {}
@@ -593,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await fetch(`/api/orders/${orderId}/status`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: order.status, payment_status: newPaymentStatus })
             });
         } catch (e) {}

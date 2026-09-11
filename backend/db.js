@@ -11,11 +11,25 @@ const inMemoryDatabase = {
             full_name: 'Farhan Tazir',
             email: 'farhan@example.com',
             password_hash: bcrypt.hashSync('password123', 10),
+            role: 'customer',
             phone: '+92 310 3546086',
             address: 'House #12, Hotel Springs Avenue, Block 5, City',
             preferred_payment: 'Cash on Delivery',
             reward_points: 480,
             loyalty_badge: 'Gold Member',
+            created_at: new Date().toISOString()
+        },
+        {
+            id: 2,
+            full_name: 'Admin Manager',
+            email: 'admin@example.com',
+            password_hash: bcrypt.hashSync('admin123', 10),
+            role: 'admin',
+            phone: '+92 300 1234567',
+            address: 'Restaurant Headquarters, Suite 101',
+            preferred_payment: 'Corporate Account',
+            reward_points: 9999,
+            loyalty_badge: 'Super Administrator',
             created_at: new Date().toISOString()
         }
     ],
@@ -177,6 +191,7 @@ const UserDAO = {
             full_name: userData.full_name,
             email: userData.email,
             password_hash: passwordHash,
+            role: userData.role || 'customer',
             phone: userData.phone || '',
             address: userData.address || '',
             preferred_payment: 'Cash on Delivery',

@@ -165,7 +165,7 @@ button:hover{
 
         <div class="links">
             <a href="new password.html">Forgot Password?</a>
-            <a href="sign up.html">Sign Up</a>
+            <a href="sign up.html" id="signup-link">Sign Up</a>
         </div>
 
         <button type="submit" id="btn-login">Login</button>
@@ -174,6 +174,32 @@ button:hover{
 
     <script src="items-store.js"></script>
     <script>
+    // Check if redirect param is present
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectParam = urlParams.get('redirect');
+    const signupLink = document.getElementById("signup-link");
+    if (signupLink && redirectParam) {
+        signupLink.href = `sign up.html?redirect=${encodeURIComponent(redirectParam)}`;
+    }
+
+    // If already logged in, redirect away from login page
+    if (window.HotalStore && window.HotalStore.isLoggedIn()) {
+        const currentUser = window.HotalStore.getCurrentUser();
+        if (redirectParam) {
+            window.location.replace(redirectParam);
+        } else if (currentUser && currentUser.role === 'admin') {
+            window.location.replace('admin.html');
+        } else {
+            window.location.replace('user-dashboard.html');
+        }
+    }
+
+    function getRedirectDestination(user) {
+        if (redirectParam) return redirectParam;
+        if (user && user.role === 'admin') return 'admin.html';
+        return 'user-dashboard.html';
+    }
+
     document.getElementById("login-form").addEventListener("submit", async function(e) {
         e.preventDefault();
 
@@ -205,20 +231,22 @@ button:hover{
             msgEl.className = "msg-status success";
             msgEl.innerText = "Login successful! Welcome back...";
 
+            const destination = getRedirectDestination(data.user);
             setTimeout(() => {
-                window.location.href = "user-dashboard.html";
-            }, 1000);
+                window.location.href = destination;
+            }, 800);
 
         } catch (err) {
             // Fallback to HotalStore local login
             try {
                 const user = window.HotalStore.loginUser(identifier, password);
                 msgEl.className = "msg-status success";
-                msgEl.innerText = `Welcome back, ${user.full_name.split(' ')[0]}!`;
+                msgEl.innerText = `Welcome back, ${user.full_name ? user.full_name.split(' ')[0] : 'User'}!`;
 
+                const destination = getRedirectDestination(user);
                 setTimeout(() => {
-                    window.location.href = "user-dashboard.html";
-                }, 1000);
+                    window.location.href = destination;
+                }, 800);
             } catch (localErr) {
                 msgEl.className = "msg-status error";
                 msgEl.innerText = localErr.message || err.message || "Invalid credentials. Please check your details.";

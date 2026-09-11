@@ -1,5 +1,10 @@
 // user-dashboard.js - Interactive User Dashboard Logic (Connected to Shared Store & SQL API)
 
+// Authentication Guard: Ensure user is authenticated before accessing dashboard
+if (typeof window !== 'undefined' && (!window.HotalStore || !window.HotalStore.isLoggedIn())) {
+    window.location.replace('login.html?redirect=user-dashboard.html');
+}
+
 const API_BASE = '/api';
 
 window.handleLogout = function() {
@@ -8,6 +13,11 @@ window.handleLogout = function() {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (!window.HotalStore || !window.HotalStore.isLoggedIn()) {
+        window.location.replace('login.html?redirect=user-dashboard.html');
+        return;
+    }
+
     initTabNavigation();
     initUserProfile();
     initOrdersData();
@@ -73,41 +83,35 @@ async function initUserProfile() {
     const form = document.querySelector('#user-profile-form');
     let currentUser = window.HotalStore ? window.HotalStore.getCurrentUser() : null;
     
-    // Attempt fetch from SQL REST API backend if available
-    if (currentUser && currentUser.id) {
-        try {
-            const response = await fetch(`${API_BASE}/user/profile?userId=${currentUser.id}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.user) {
-                    currentUser = {
-                        ...currentUser,
-                        full_name: data.user.full_name,
-                        email: data.user.email,
-                        phone: data.user.phone,
-                        preferred_payment: data.user.preferred_payment,
-                        address: data.user.address,
-                        reward_points: data.user.reward_points,
-                        loyalty_badge: data.user.loyalty_badge
-                    };
-                }
-            }
-        } catch (err) {
-            console.log('[Dashboard] API offline, using local store profile');
-        }
+    if (!currentUser) {
+        window.location.replace('login.html?redirect=user-dashboard.html');
+        return;
     }
 
-    if (!currentUser) {
-        currentUser = {
-            id: 'user-1',
-            full_name: 'Farhan Tazir',
-            email: 'farhan@example.com',
-            phone: '+92 310 3546086',
-            preferred_payment: 'Cash on Delivery',
-            address: 'House #12, Hotel Springs Avenue, Block 5, City',
-            reward_points: 480,
-            loyalty_badge: 'Gold Member'
-        };
+    // Attempt fetch from SQL REST API backend if available
+    try {
+        const response = await fetch(`${API_BASE}/user/profile`, {
+            headers: window.HotalStore.getAuthHeaders()
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+                currentUser = {
+                    ...currentUser,
+                    full_name: data.user.full_name || currentUser.full_name,
+                    email: data.user.email || currentUser.email,
+                    phone: data.user.phone || currentUser.phone,
+                    preferred_payment: data.user.preferred_payment || currentUser.preferred_payment,
+                    address: data.user.address || currentUser.address,
+                    reward_points: data.user.reward_points !== undefined ? data.user.reward_points : currentUser.reward_points,
+                    loyalty_badge: data.user.loyalty_badge || currentUser.loyalty_badge,
+                    role: data.user.role || currentUser.role
+                };
+                window.HotalStore.setCurrentUser(currentUser);
+            }
+        }
+    } catch (err) {
+        console.log('[Dashboard] API offline, using local store profile');
     }
 
     updateProfileUI(currentUser);
@@ -154,8 +158,8 @@ async function initUserProfile() {
             try {
                 await fetch(`${API_BASE}/user/profile`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUser.id, ...updatedData })
+                    headers: window.HotalStore.getAuthHeaders(),
+                    body: JSON.stringify(updatedData)
                 });
             } catch (err) {}
 
@@ -168,22 +172,29 @@ async function initUserProfile() {
 }
 
 function updateProfileUI(profile) {
+    if (!profile) return;
+
     const navAvatar = document.querySelector('#nav-avatar-initial');
     const navUser = document.querySelector('#nav-username');
     const heroAvatar = document.querySelector('#hero-avatar');
     const heroUser = document.querySelector('#hero-username');
     const rewardPts = document.querySelector('#stat-reward-points');
     const loyaltyBadge = document.querySelector('#hero-loyalty-badge');
+    const adminLink = document.querySelector('#nav-admin-link');
 
-    const name = profile.full_name || profile.name || 'Farhan Tazir';
-    const initial = name.charAt(0).toUpperCase() || 'F';
+    if (adminLink) {
+        adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'inline-flex' : 'none';
+    }
+
+    const name = profile.full_name || profile.name || 'User';
+    const initial = name.trim().charAt(0).toUpperCase() || 'U';
 
     if (navAvatar) navAvatar.textContent = initial;
     if (heroAvatar) heroAvatar.textContent = initial;
-    if (navUser) navUser.textContent = name.split(' ')[0];
+    if (navUser) navUser.textContent = name.split(' ')[0] || 'User';
     if (heroUser) heroUser.textContent = name;
-    if (rewardPts) rewardPts.textContent = profile.reward_points || profile.rewardPoints || 480;
-    if (loyaltyBadge) loyaltyBadge.innerHTML = `<i class='bx bxs-star'></i> ${profile.loyalty_badge || profile.loyaltyBadge || 'Gold Member'}`;
+    if (rewardPts) rewardPts.textContent = profile.reward_points !== undefined ? profile.reward_points : 0;
+    if (loyaltyBadge) loyaltyBadge.innerHTML = `<i class='bx bxs-star'></i> ${profile.loyalty_badge || 'Silver Member'}`;
 
     const profName = document.querySelector('#prof-name');
     const profEmail = document.querySelector('#prof-email');
@@ -206,12 +217,16 @@ async function initOrdersData() {
     if (!overviewRecentBody && !fullOrdersBody) return;
 
     const currentUser = window.HotalStore ? window.HotalStore.getCurrentUser() : null;
-    let userOrders = window.HotalStore ? window.HotalStore.getUserOrders(currentUser ? currentUser.id : null) : [];
+    if (!currentUser) return;
+
+    let userOrders = window.HotalStore ? window.HotalStore.getUserOrders(currentUser.id) : [];
 
     // Attempt backend API fetch
     if (currentUser && currentUser.id) {
         try {
-            const res = await fetch(`${API_BASE}/user/orders?userId=${currentUser.id}`);
+            const res = await fetch(`${API_BASE}/user/orders`, {
+                headers: window.HotalStore.getAuthHeaders()
+            });
             if (res.ok) {
                 const data = await res.json();
                 if (data.success && data.orders && data.orders.length > 0) {

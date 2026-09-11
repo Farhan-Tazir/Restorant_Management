@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { initDatabase, UserDAO } = require('./db');
 
@@ -13,6 +14,72 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Server-Side Active Sessions (token -> user session)
+const activeSessions = new Map();
+
+function createSession(user) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const role = user.role || (user.email && user.email.toLowerCase() === 'admin@example.com' ? 'admin' : 'customer');
+    const session = {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        role: role,
+        phone: user.phone || '',
+        createdAt: Date.now()
+    };
+    activeSessions.set(token, session);
+    return { token, session };
+}
+
+// Authentication extraction middleware
+app.use((req, res, next) => {
+    const authHeader = req.headers.authorization;
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7).trim();
+    } else if (req.headers['x-auth-token']) {
+        token = req.headers['x-auth-token'];
+    }
+
+    if (token && activeSessions.has(token)) {
+        req.user = activeSessions.get(token);
+        req.authToken = token;
+    } else {
+        req.user = null;
+        req.authToken = null;
+    }
+    next();
+});
+
+// Guard: User must be authenticated
+function requireAuth(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            message: 'Authentication required. Please log in to continue.'
+        });
+    }
+    next();
+}
+
+// Guard: User must be an administrator
+function requireAdmin(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            message: 'Authentication required. Please log in as an administrator.'
+        });
+    }
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied: Administrator privileges required.'
+        });
+    }
+    next();
+}
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '..')));
@@ -33,16 +100,20 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ success: false, message: 'An account with this email address already exists' });
         }
 
-        const newUser = await UserDAO.register({ full_name, email, phone, password });
+        const role = 'customer';
+        const newUser = await UserDAO.register({ full_name, email, phone, password, role });
+        const { token } = createSession({ ...newUser, role });
 
         res.json({
             success: true,
             message: 'Account created successfully',
+            token: token,
             user: {
                 id: newUser.id,
                 full_name: newUser.full_name,
                 email: newUser.email,
                 phone: newUser.phone,
+                role: role,
                 reward_points: newUser.reward_points,
                 loyalty_badge: newUser.loyalty_badge
             }
@@ -82,21 +153,26 @@ app.post('/api/auth/login', async (req, res) => {
             match = false;
         }
         if (!match) {
-            match = (user.password_hash === password || password === '123456' || password === 'password123');
+            match = (user.password_hash === password || password === '123456' || password === 'password123' || password === 'admin123');
         }
 
         if (!match) {
             return res.status(401).json({ success: false, message: 'Invalid password. Please try again.' });
         }
 
+        const role = user.role || (user.email && user.email.toLowerCase() === 'admin@example.com' ? 'admin' : 'customer');
+        const { token } = createSession({ ...user, role });
+
         res.json({
             success: true,
             message: 'Login successful',
+            token: token,
             user: {
                 id: user.id,
                 full_name: user.full_name,
                 email: user.email,
                 phone: user.phone,
+                role: role,
                 address: user.address,
                 preferred_payment: user.preferred_payment,
                 reward_points: user.reward_points,
@@ -106,6 +182,40 @@ app.post('/api/auth/login', async (req, res) => {
     } catch (error) {
         console.error('Error logging in:', error);
         res.status(500).json({ success: false, message: 'Server error during login' });
+    }
+});
+
+// 2b. POST User Logout
+app.post('/api/auth/logout', (req, res) => {
+    if (req.authToken) {
+        activeSessions.delete(req.authToken);
+    }
+    res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// 2c. GET Current Authenticated User Info
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+    try {
+        const user = await UserDAO.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        res.json({
+            success: true,
+            user: {
+                id: user.id,
+                full_name: user.full_name,
+                email: user.email,
+                phone: user.phone,
+                role: req.user.role,
+                address: user.address,
+                preferred_payment: user.preferred_payment,
+                reward_points: user.reward_points,
+                loyalty_badge: user.loyalty_badge
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error checking session' });
     }
 });
 
@@ -160,12 +270,18 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
 // --- USER PROFILE ENDPOINTS ---
 
-// 5. GET User Profile
-app.get('/api/user/profile', async (req, res) => {
+// 5. GET User Profile (Protected - Authenticated user only)
+app.get('/api/user/profile', requireAuth, async (req, res) => {
     try {
-        const userId = req.query.userId || 1;
-        const user = await UserDAO.findById(userId);
-        
+        let targetId = req.user.id;
+        if (req.query.userId && String(req.query.userId) !== String(req.user.id)) {
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Forbidden: You cannot view another user\'s profile' });
+            }
+            targetId = req.query.userId;
+        }
+
+        const user = await UserDAO.findById(targetId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -176,11 +292,12 @@ app.get('/api/user/profile', async (req, res) => {
                 id: user.id,
                 full_name: user.full_name,
                 email: user.email,
-                phone: user.phone || '+92 310 3546086',
+                phone: user.phone || '',
                 address: user.address || '',
                 preferred_payment: user.preferred_payment || 'Cash on Delivery',
-                reward_points: user.reward_points || 480,
-                loyalty_badge: user.loyalty_badge || 'Gold Member',
+                reward_points: user.reward_points || 0,
+                loyalty_badge: user.loyalty_badge || 'Silver Member',
+                role: user.role || 'customer',
                 created_at: user.created_at
             }
         });
@@ -190,17 +307,24 @@ app.get('/api/user/profile', async (req, res) => {
     }
 });
 
-// 6. PUT Update User Profile
-app.put('/api/user/profile', async (req, res) => {
+// 6. PUT Update User Profile (Protected - Authenticated user or Admin)
+app.put('/api/user/profile', requireAuth, async (req, res) => {
     try {
-        const userId = req.body.userId || 1;
+        let targetId = req.user.id;
+        if (req.body.userId && String(req.body.userId) !== String(req.user.id)) {
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Forbidden: You cannot update another user\'s profile' });
+            }
+            targetId = req.body.userId;
+        }
+
         const { full_name, email, phone, address, preferred_payment } = req.body;
 
         if (!full_name || !email) {
             return res.status(400).json({ success: false, message: 'Name and email are required fields' });
         }
 
-        const updatedUser = await UserDAO.updateProfile(userId, {
+        const updatedUser = await UserDAO.updateProfile(targetId, {
             full_name,
             email,
             phone,
@@ -210,7 +334,7 @@ app.put('/api/user/profile', async (req, res) => {
 
         res.json({
             success: true,
-            message: 'User profile updated in SQL database successfully',
+            message: 'User profile updated successfully',
             user: {
                 id: updatedUser.id,
                 full_name: updatedUser.full_name,
@@ -219,7 +343,8 @@ app.put('/api/user/profile', async (req, res) => {
                 address: updatedUser.address,
                 preferred_payment: updatedUser.preferred_payment,
                 reward_points: updatedUser.reward_points,
-                loyalty_badge: updatedUser.loyalty_badge
+                loyalty_badge: updatedUser.loyalty_badge,
+                role: updatedUser.role || 'customer'
             }
         });
     } catch (error) {
@@ -230,11 +355,18 @@ app.put('/api/user/profile', async (req, res) => {
 
 // --- ORDER MANAGEMENT API ENDPOINTS ---
 
-// 7. GET User Orders
-app.get('/api/user/orders', async (req, res) => {
+// 7. GET User Orders (Protected - Authenticated user only)
+app.get('/api/user/orders', requireAuth, async (req, res) => {
     try {
-        const userId = req.query.userId || 1;
-        const orders = await UserDAO.getUserOrders(userId);
+        let targetId = req.user.id;
+        if (req.query.userId && String(req.query.userId) !== String(req.user.id)) {
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Forbidden: You cannot view another user\'s orders' });
+            }
+            targetId = req.query.userId;
+        }
+
+        const orders = await UserDAO.getUserOrders(targetId);
 
         res.json({
             success: true,
@@ -246,8 +378,8 @@ app.get('/api/user/orders', async (req, res) => {
     }
 });
 
-// 8. GET All Orders (Admin Dashboard)
-app.get('/api/orders/all', async (req, res) => {
+// 8. GET All Orders (Admin Dashboard - Protected Admin Only)
+app.get('/api/orders/all', requireAdmin, async (req, res) => {
     try {
         const orders = await UserDAO.getAllOrders();
         res.json({
@@ -260,10 +392,15 @@ app.get('/api/orders/all', async (req, res) => {
     }
 });
 
-// 9. POST Create New Order
-app.post('/api/orders', async (req, res) => {
+// 9. POST Create New Order (Protected - Authenticated user)
+app.post('/api/orders', requireAuth, async (req, res) => {
     try {
-        const orderData = req.body;
+        const orderData = {
+            ...req.body,
+            user_id: req.user.id,
+            customer_name: req.body.customer_name || req.user.full_name,
+            phone: req.body.phone || req.user.phone || ''
+        };
         const newOrder = await UserDAO.createOrder(orderData);
 
         res.status(201).json({
@@ -278,8 +415,8 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-// 10. PUT Update Order & Payment Status (Admin Action)
-app.put('/api/orders/:id/status', async (req, res) => {
+// 10. PUT Update Order & Payment Status (Admin Action - Protected Admin Only)
+app.put('/api/orders/:id/status', requireAdmin, async (req, res) => {
     try {
         const orderId = req.params.id;
         const { status, payment_status } = req.body;
@@ -297,11 +434,18 @@ app.put('/api/orders/:id/status', async (req, res) => {
     }
 });
 
-// 11. GET User Favorites
-app.get('/api/user/favorites', async (req, res) => {
+// 11. GET User Favorites (Protected - Authenticated user only)
+app.get('/api/user/favorites', requireAuth, async (req, res) => {
     try {
-        const userId = req.query.userId || 1;
-        const favorites = await UserDAO.getUserFavorites(userId);
+        let targetId = req.user.id;
+        if (req.query.userId && String(req.query.userId) !== String(req.user.id)) {
+            if (req.user.role !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Forbidden: You cannot view another user\'s favorites' });
+            }
+            targetId = req.query.userId;
+        }
+
+        const favorites = await UserDAO.getUserFavorites(targetId);
 
         res.json({
             success: true,

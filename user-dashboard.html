@@ -30,10 +30,10 @@
 
         <div class="nav-icons">
             <a href="order-form.html" title="Cart / Orders"><i class='bx bx-shopping-bag'></i></a>
-            <a href="admin.html" title="Admin Portal"><i class='bx bx-shield-quarter'></i></a>
+            <a href="admin.html" id="nav-admin-link" style="display: none;" title="Admin Portal"><i class='bx bx-shield-quarter'></i></a>
             <div class="nav-user-profile" id="user-profile-toggle" title="User Profile">
-                <div class="user-avatar-small" id="nav-avatar-initial">F</div>
-                <span class="user-name-small" id="nav-username">Farhan</span>
+                <div class="user-avatar-small" id="nav-avatar-initial">U</div>
+                <span class="user-name-small" id="nav-username">Account</span>
                 <a href="javascript:void(0)" onclick="handleLogout()" style="color:#e74c3c; margin-left: 8px;" title="Logout"><i class='bx bx-log-out' style="font-size: 1.2rem;"></i></a>
             </div>
             <div class="bx bx-menu" id="menu-icon"></div>
@@ -46,12 +46,12 @@
         <!-- Hero Welcome Banner -->
         <section class="user-hero-banner">
             <div class="hero-profile-info">
-                <div class="hero-avatar" id="hero-avatar">F</div>
+                <div class="hero-avatar" id="hero-avatar">U</div>
                 <div class="hero-text">
-                    <h1>Welcome Back, <span id="hero-username">Farhan Tazir</span>!</h1>
+                    <h1>Welcome Back, <span id="hero-username">User</span>!</h1>
                     <p>
                         <span><i class='bx bxs-check-shield' style="color: var(--main-color);"></i> Verified Customer</span>
-                        <span class="loyalty-badge" id="hero-loyalty-badge"><i class='bx bxs-star'></i> Gold Member</span>
+                        <span class="loyalty-badge" id="hero-loyalty-badge"><i class='bx bxs-star'></i> Member</span>
                     </p>
                 </div>
             </div>
@@ -254,17 +254,17 @@
                         
                         <div class="form-group">
                             <label><i class='bx bx-user'></i> Full Name</label>
-                            <input type="text" id="prof-name" class="form-control" value="Farhan Tazir" required>
+                            <input type="text" id="prof-name" class="form-control" placeholder="Your Full Name" required>
                         </div>
 
                         <div class="form-group">
                             <label><i class='bx bx-envelope'></i> Email Address</label>
-                            <input type="email" id="prof-email" class="form-control" value="farhan@example.com" required>
+                            <input type="email" id="prof-email" class="form-control" placeholder="Your Email Address" required>
                         </div>
 
                         <div class="form-group">
                             <label><i class='bx bx-phone'></i> Phone Number</label>
-                            <input type="tel" id="prof-phone" class="form-control" value="+92 310 3546086" required>
+                            <input type="tel" id="prof-phone" class="form-control" placeholder="Your Phone Number" required>
                         </div>
 
                         <div class="form-group">

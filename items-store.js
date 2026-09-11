@@ -54,10 +54,24 @@ const DEFAULT_USERS = [
         email: 'farhan@example.com',
         phone: '+92 310 3546086',
         password: 'password123',
+        role: 'customer',
         address: 'House #12, Hotel Springs Avenue, Block 5, City',
         preferred_payment: 'Cash on Delivery',
         reward_points: 480,
         loyalty_badge: 'Gold Member',
+        created_at: new Date().toISOString()
+    },
+    {
+        id: 'user-admin',
+        full_name: 'Admin Manager',
+        email: 'admin@example.com',
+        phone: '+92 300 1234567',
+        password: 'admin123',
+        role: 'admin',
+        address: 'Restaurant Headquarters, Suite 101',
+        preferred_payment: 'Corporate Account',
+        reward_points: 9999,
+        loyalty_badge: 'Super Administrator',
         created_at: new Date().toISOString()
     }
 ];
@@ -233,6 +247,7 @@ function registerUser(userData) {
         email: userData.email.trim().toLowerCase(),
         phone: userData.phone ? userData.phone.trim() : '',
         password: userData.password,
+        role: userData.role || 'customer',
         address: userData.address || '',
         preferred_payment: 'Cash on Delivery',
         reward_points: 100,
@@ -264,22 +279,60 @@ function loginUser(identifier, password) {
 function getCurrentUser() {
     try {
         const stored = localStorage.getItem(CURRENT_USER_KEY);
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed && (parsed.id || parsed.email)) {
+                return parsed;
+            }
+        }
     } catch (e) {}
-    // Default fallback to first demo user
-    const users = getUsers();
-    return users[0] || null;
+    // Strict authentication: Return null if nobody is logged in. Never fallback to default users.
+    return null;
+}
+
+function isLoggedIn() {
+    const user = getCurrentUser();
+    return Boolean(user && (user.id || user.email));
+}
+
+function isAdmin() {
+    const user = getCurrentUser();
+    if (!user) return false;
+    return Boolean(user.role === 'admin' || (user.email && user.email.toLowerCase() === 'admin@example.com'));
+}
+
+function getAuthHeaders() {
+    const user = getCurrentUser();
+    const headers = { 'Content-Type': 'application/json' };
+    if (user && user.token) {
+        headers['Authorization'] = `Bearer ${user.token}`;
+    }
+    return headers;
 }
 
 function setCurrentUser(user) {
     try {
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        if (!user) {
+            localStorage.removeItem(CURRENT_USER_KEY);
+        } else {
+            localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        }
         window.dispatchEvent(new CustomEvent('hotal_current_user_updated', { detail: user }));
     } catch (e) {}
 }
 
 function logoutUser() {
     try {
+        const user = getCurrentUser();
+        if (user && user.token) {
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                }
+            }).catch(() => {});
+        }
         localStorage.removeItem(CURRENT_USER_KEY);
         window.dispatchEvent(new CustomEvent('hotal_current_user_updated', { detail: null }));
     } catch (e) {}
@@ -443,6 +496,9 @@ window.HotalStore = {
     getCurrentUser,
     setCurrentUser,
     logoutUser,
+    isLoggedIn,
+    isAdmin,
+    getAuthHeaders,
     verifyPhone,
     resetPasswordByPhone,
     updateUserProfile,

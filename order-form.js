@@ -1,5 +1,10 @@
 // order-form.js - Logic for Hotel Restaurant Order Form
 
+// Authentication Guard: Ensure user is authenticated before accessing order form
+if (typeof window !== 'undefined' && (!window.HotalStore || !window.HotalStore.isLoggedIn())) {
+    window.location.replace('login.html?redirect=order-form.html');
+}
+
 function getActiveMenu() {
   if (window.HotalStore && typeof window.HotalStore.getItems === 'function') {
     return window.HotalStore.getItems().filter(item => item.isAvailable);
@@ -167,6 +172,10 @@ if (form) {
     message.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Submitting your order...`;
 
     const currentUser = window.HotalStore ? window.HotalStore.getCurrentUser() : null;
+    if (!currentUser) {
+      window.location.replace('login.html?redirect=order-form.html');
+      return;
+    }
     const orderType = formData.get('orderType') || 'pickup';
     const paymentMethod = formData.get('paymentMethod') || 'Cash on Delivery';
     
@@ -176,12 +185,12 @@ if (form) {
     const grandTotal = subtotal + deliveryFee;
 
     const orderPayload = {
-      user_id: currentUser ? currentUser.id : 'user-1',
-      customer_name: formData.get('fullName') || (currentUser ? currentUser.full_name : 'Guest'),
-      phone: formData.get('phone') || (currentUser ? currentUser.phone : ''),
+      user_id: currentUser.id,
+      customer_name: formData.get('fullName') || currentUser.full_name,
+      phone: formData.get('phone') || currentUser.phone || '',
       order_type: orderType,
       table_number: formData.get('tableNumber') || '',
-      delivery_address: formData.get('deliveryAddress') || '',
+      delivery_address: formData.get('deliveryAddress') || currentUser.address || '',
       payment_method: paymentMethod,
       subtotal: subtotal,
       delivery_fee: deliveryFee,
@@ -197,7 +206,7 @@ if (form) {
       try {
         await fetch('/api/orders', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: window.HotalStore.getAuthHeaders(),
           body: JSON.stringify({
             ...orderPayload,
             order_number: createdLocalOrder.order_number,

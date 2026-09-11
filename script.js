@@ -85,13 +85,54 @@ function renderShopItems() {
 document.addEventListener('DOMContentLoaded', () => {
     renderShopItems();
 
+    // Check admin visibility in navbar
+    const adminLink = document.getElementById('nav-admin-link');
+    if (adminLink) {
+        adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'inline-flex' : 'none';
+    }
+
+    // Auth-aware user profile navigation
+    const userIcon = document.getElementById('nav-user-icon');
+    if (userIcon) {
+        userIcon.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (window.HotalStore && window.HotalStore.isLoggedIn()) {
+                window.location.href = 'user-dashboard.html';
+            } else {
+                window.location.href = 'login.html?redirect=user-dashboard.html';
+            }
+        });
+    }
+
+    // Auth-aware order button clicks
+    document.addEventListener('click', (e) => {
+        const orderBtn = e.target.closest('a[href="order-form.html"], a[href="./order-form.html"]');
+        if (orderBtn) {
+            if (!window.HotalStore || !window.HotalStore.isLoggedIn()) {
+                e.preventDefault();
+                window.location.href = 'login.html?redirect=order-form.html';
+            }
+        }
+    });
+
     window.addEventListener('storage', (e) => {
         if (e.key === 'hotal_items') {
             renderShopItems();
+        }
+        if (e.key === 'hotal_current_user') {
+            if (adminLink) {
+                adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'inline-flex' : 'none';
+            }
         }
     });
 
     window.addEventListener('hotal_items_updated', () => {
         renderShopItems();
+    });
+
+    window.addEventListener('hotal_current_user_updated', () => {
+        if (adminLink) {
+            adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'inline-flex' : 'none';
+        }
     });
 });

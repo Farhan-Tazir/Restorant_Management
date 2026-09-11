@@ -184,7 +184,7 @@ button:hover{
         </div>
 
         <div class="links">
-            <a href="login.html">Already have an account? Login Instead</a>
+            <a href="login.html" id="login-link">Already have an account? Login Instead</a>
         </div>
 
         <button type="submit" id="btn-submit">Create Account</button>
@@ -193,6 +193,18 @@ button:hover{
 
     <script src="items-store.js"></script>
     <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectParam = urlParams.get('redirect');
+    const loginLink = document.getElementById("login-link");
+    if (loginLink && redirectParam) {
+        loginLink.href = `login.html?redirect=${encodeURIComponent(redirectParam)}`;
+    }
+
+    // If already logged in, redirect away
+    if (window.HotalStore && window.HotalStore.isLoggedIn()) {
+        window.location.replace(redirectParam || 'user-dashboard.html');
+    }
+
     document.getElementById("signup-form").addEventListener("submit", async function(event) {
         event.preventDefault();
 
@@ -220,6 +232,8 @@ button:hover{
         msgEl.className = "msg-status";
         msgEl.innerText = "Creating account...";
 
+        const destination = redirectParam || "user-dashboard.html";
+
         try {
             // Attempt API call
             const response = await fetch('/api/auth/register', {
@@ -238,11 +252,11 @@ button:hover{
             window.HotalStore.loginUser(email, pass1);
 
             msgEl.className = "msg-status success";
-            msgEl.innerText = "Account created successfully! Redirecting to dashboard...";
+            msgEl.innerText = "Account created successfully! Redirecting...";
 
             setTimeout(() => {
-                window.location.href = "user-dashboard.html";
-            }, 1200);
+                window.location.href = destination;
+            }, 800);
 
         } catch (err) {
             // Fallback to client HotalStore
@@ -251,11 +265,11 @@ button:hover{
                 window.HotalStore.setCurrentUser(user);
 
                 msgEl.className = "msg-status success";
-                msgEl.innerText = "Account created! Redirecting to dashboard...";
+                msgEl.innerText = "Account created! Redirecting...";
 
                 setTimeout(() => {
-                    window.location.href = "user-dashboard.html";
-                }, 1200);
+                    window.location.href = destination;
+                }, 800);
             } catch (localErr) {
                 msgEl.className = "msg-status error";
                 msgEl.innerText = localErr.message || err.message || "Failed to create account.";
