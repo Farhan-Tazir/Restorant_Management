@@ -210,13 +210,19 @@ const UserDAO = {
     },
 
     async updatePasswordByPhone(phone, newPassword) {
-        const passwordHash = await bcrypt.hash(newPassword, 10);
         const normalized = phone.trim().replace(/\s+/g, '');
+        const existing = await this.findByPhone(phone);
+        if (!existing) return null;
+        if (existing.role === 'admin') {
+            throw new Error('Unauthorized: Administrator passwords cannot be reset via phone recovery.');
+        }
+
+        const passwordHash = await bcrypt.hash(newPassword, 10);
 
         if (isConnected && dbPool) {
             try {
                 await dbPool.query(
-                    `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE REPLACE(phone, " ", "") = ?`,
+                    `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE REPLACE(phone, " ", "") = ? AND role != 'admin'`,
                     [passwordHash, normalized]
                 );
                 return this.findByPhone(phone);
@@ -225,7 +231,7 @@ const UserDAO = {
             }
         }
 
-        const user = inMemoryDatabase.users.find(u => u.phone && u.phone.trim().replace(/\s+/g, '') === normalized);
+        const user = inMemoryDatabase.users.find(u => u.phone && u.phone.trim().replace(/\s+/g, '') === normalized && u.role !== 'admin');
         if (user) {
             user.password_hash = passwordHash;
             user.updated_at = new Date().toISOString();

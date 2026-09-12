@@ -364,11 +364,25 @@ if (typeof document !== 'undefined') {
     });
 }
 
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function verifyPhone(phone) {
     const users = getUsers();
     const normalized = phone.trim().replace(/\s+/g, '');
     const user = users.find(u => u.phone && u.phone.trim().replace(/\s+/g, '') === normalized);
-    return user || null;
+    if (!user) return null;
+    if (user.role === 'admin') {
+        throw new Error('Administrator accounts cannot be reset via public phone recovery.');
+    }
+    return user;
 }
 
 function resetPasswordByPhone(phone, newPassword) {
@@ -378,6 +392,10 @@ function resetPasswordByPhone(phone, newPassword) {
 
     if (userIndex === -1) {
         throw new Error('No account registered with this phone number!');
+    }
+
+    if (users[userIndex].role === 'admin') {
+        throw new Error('Administrator accounts cannot be reset via phone recovery.');
     }
 
     users[userIndex].password = newPassword;
@@ -505,6 +523,7 @@ function getLatestActiveOrder(userId) {
 
 // Export functions to global scope
 window.HotalStore = {
+    escapeHtml,
     getItems,
     saveItems,
     addItem,

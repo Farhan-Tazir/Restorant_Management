@@ -47,6 +47,16 @@ window.addEventListener("scroll", function() {
     if (header) header.classList.toggle("sticky", window.scrollY > 80);
 });
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Render Menu Items with Thumbnails & Selected Card Glow
 function renderOrderFormMenu() {
   menu = getActiveMenu();
@@ -57,17 +67,19 @@ function renderOrderFormMenu() {
     return;
   }
 
+  const esc = (window.HotalStore && window.HotalStore.escapeHtml) ? window.HotalStore.escapeHtml : escapeHtml;
+
   menuItems.innerHTML = menu.map((item) => `
-    <label class="menu-item-card" for="chk-${item.id}" id="card-${item.id}">
-      <img src="${item.image || 'images/fast-food.png'}" class="menu-item-thumb" alt="${item.name}" onerror="this.src='images/fast-food.png'">
+    <label class="menu-item-card" for="chk-${esc(item.id)}" id="card-${esc(item.id)}">
+      <img src="${esc(item.image || 'images/fast-food.png')}" class="menu-item-thumb" alt="${esc(item.name)}" onerror="this.src='images/fast-food.png'">
       <div class="menu-item-info">
-        <span class="menu-item-title">${item.name}</span>
-        <span class="menu-item-desc">${item.description || 'Freshly prepared with top ingredients.'}</span>
+        <span class="menu-item-title">${esc(item.name)}</span>
+        <span class="menu-item-desc">${esc(item.description || 'Freshly prepared with top ingredients.')}</span>
       </div>
-      <span class="menu-item-price">$${parseFloat(item.price).toFixed(2)}</span>
-      <input id="chk-${item.id}" class="item-checkbox" data-id="${item.id}" type="checkbox" aria-label="Add ${item.name}" />
+      <span class="menu-item-price">$${parseFloat(item.price || 0).toFixed(2)}</span>
+      <input id="chk-${esc(item.id)}" class="item-checkbox" data-id="${esc(item.id)}" type="checkbox" aria-label="Add ${esc(item.name)}" />
       <div class="quantity-stepper">
-        <input class="quantity-input" data-quantity-for="${item.id}" type="number" min="1" value="1" disabled aria-label="Quantity of ${item.name}" onclick="event.stopPropagation();" />
+        <input class="quantity-input" data-quantity-for="${esc(item.id)}" type="number" min="1" value="1" disabled aria-label="Quantity of ${esc(item.name)}" onclick="event.stopPropagation();" />
       </div>
     </label>`).join('');
 }

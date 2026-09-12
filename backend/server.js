@@ -10,14 +10,122 @@ const { initDatabase, UserDAO } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Security Hardening: Disable information disclosure headers
+app.disable('x-powered-by');
+
+// Security Headers Middleware
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+// Middleware with bounded payload limits to mitigate DoS
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '500kb' }));
+app.use(express.urlencoded({ extended: true, limit: '500kb' }));
 
 // Server-Side Session Security & Token Configuration
 const SESSION_SECRET = process.env.SESSION_SECRET || 'hotel_mgmt_secure_session_secret_2026_x89a';
 const activeSessions = new Map();
+
+// In-Memory Rate Limiting & Anti-Brute-Force Stores
+const loginAttempts = new Map(); // key -> { count, lockedUntil, firstAttempt }
+const rateLimitWindows = new Map(); // key -> { count, resetAt }
+
+function checkLoginRateLimit(key) {
+    const now = Date.now();
+    const entry = loginAttempts.get(key);
+    if (!entry) return true;
+    if (entry.lockedUntil && entry.lockedUntil > now) {
+        return false;
+    }
+    if (entry.lockedUntil && entry.lockedUntil <= now) {
+        loginAttempts.delete(key);
+        return true;
+    }
+    if (now - entry.firstAttempt > 15 * 60 * 1000) {
+        loginAttempts.delete(key);
+        return true;
+    }
+    return true;
+}
+
+function recordFailedLogin(key) {
+    const now = Date.now();
+    const entry = loginAttempts.get(key) || { count: 0, firstAttempt: now };
+    entry.count += 1;
+    if (entry.count >= 5) {
+        entry.lockedUntil = now + (15 * 60 * 1000); // 15-minute temporary lockout after 5 consecutive failures
+    }
+    loginAttempts.set(key, entry);
+}
+
+function clearLoginAttempts(key) {
+    loginAttempts.delete(key);
+}
+
+function checkGeneralRateLimit(key, maxRequests = 20, windowMs = 60000) {
+    const now = Date.now();
+    const entry = rateLimitWindows.get(key) || { count: 0, resetAt: now + windowMs };
+    if (now > entry.resetAt) {
+        entry.count = 1;
+        entry.resetAt = now + windowMs;
+        rateLimitWindows.set(key, entry);
+        return true;
+    }
+    entry.count += 1;
+    rateLimitWindows.set(key, entry);
+    return entry.count <= maxRequests;
+}
+
+/**
+ * Creates a cryptographically signed password reset token valid for 10 minutes.
+ */
+function createPasswordResetToken(user) {
+    const payload = {
+        userId: user.id,
+        phone: user.phone || '',
+        purpose: 'password_reset',
+        exp: Date.now() + (10 * 60 * 1000) // 10 minutes
+    };
+    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = crypto.createHmac('sha256', SESSION_SECRET).update(`reset:${payloadB64}`).digest('base64url');
+    return `${payloadB64}.${signature}`;
+}
+
+/**
+ * Verifies the integrity and validity of a password reset token.
+ */
+function verifyPasswordResetToken(token, expectedPhone) {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+    const [payloadB64, signature] = parts;
+    const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(`reset:${payloadB64}`).digest('base64url');
+
+    try {
+        const sigBuf = Buffer.from(signature);
+        const expBuf = Buffer.from(expectedSig);
+        if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+            return null;
+        }
+
+        const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+        if (payload.purpose !== 'password_reset' || !payload.exp || payload.exp < Date.now()) {
+            return null;
+        }
+        if (expectedPhone) {
+            const norm1 = (payload.phone || '').trim().replace(/\s+/g, '');
+            const norm2 = (expectedPhone || '').trim().replace(/\s+/g, '');
+            if (norm1 !== norm2) return null;
+        }
+        return payload;
+    } catch (_) {
+        return null;
+    }
+}
 
 /**
  * Creates a cryptographically signed, tamper-proof session token.
@@ -273,24 +381,47 @@ app.use(express.static(path.join(__dirname, '..')));
 // 1. POST Account Registration
 app.post('/api/auth/register', async (req, res) => {
     try {
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+        if (!checkGeneralRateLimit(`reg:${clientIp}`, 10, 10 * 60 * 1000)) {
+            return res.status(429).json({ success: false, message: 'Too many registration requests from this network. Please try again later.' });
+        }
+
         const { full_name, email, phone, password } = req.body;
 
         if (!full_name || !email || !password) {
             return res.status(400).json({ success: false, message: 'Full name, email, and password are required' });
         }
 
-        if (typeof password !== 'string' || password.length < 6) {
-            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+        const trimmedName = String(full_name).trim();
+        const trimmedEmail = String(email).trim().toLowerCase();
+
+        if (trimmedName.length < 2 || trimmedName.length > 100) {
+            return res.status(400).json({ success: false, message: 'Full name must be between 2 and 100 characters long' });
         }
 
-        const existingUser = await UserDAO.findByEmail(email);
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+        }
+
+        if (typeof password !== 'string' || password.length < 6 || password.length > 128) {
+            return res.status(400).json({ success: false, message: 'Password must be between 6 and 128 characters long' });
+        }
+
+        const existingUser = await UserDAO.findByEmail(trimmedEmail);
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'An account with this email address already exists' });
         }
 
-        // New registrations are always assigned 'customer' role
+        // New registrations are always strictly assigned 'customer' role
         const role = 'customer';
-        const newUser = await UserDAO.register({ full_name, email, phone, password, role });
+        const newUser = await UserDAO.register({
+            full_name: trimmedName,
+            email: trimmedEmail,
+            phone: phone ? String(phone).trim() : '',
+            password,
+            role
+        });
         const { token } = createSession({ ...newUser, role });
 
         setAuthCookie(res, token);
@@ -311,7 +442,7 @@ app.post('/api/auth/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Error during registration:', error);
-        res.status(500).json({ success: false, message: error.message || 'Server error during account registration' });
+        res.status(500).json({ success: false, message: 'Server error during account registration' });
     }
 });
 
@@ -319,10 +450,20 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const identifier = (email || req.body.phone || '').trim();
+        const identifier = String(email || req.body.phone || '').trim().toLowerCase();
 
         if (!identifier || !password) {
             return res.status(400).json({ success: false, message: 'Email/phone and password are required' });
+        }
+
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+        const rateLimitKey = `${clientIp}:${identifier}`;
+
+        if (!checkLoginRateLimit(rateLimitKey)) {
+            return res.status(429).json({
+                success: false,
+                message: 'Too many consecutive failed login attempts. For your security, this account is temporarily locked. Please try again in 15 minutes.'
+            });
         }
 
         let user = await UserDAO.findByEmail(identifier);
@@ -331,10 +472,11 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
+            recordFailedLogin(rateLimitKey);
+            return res.status(401).json({ success: false, message: 'Invalid credentials. Please check your email/phone and password.' });
         }
 
-        // Strict password verification using bcrypt only. No hardcoded or universal bypass passwords.
+        // Strict password verification using bcrypt only.
         let match = false;
         if (user.password_hash) {
             try {
@@ -345,8 +487,12 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         if (!match) {
+            recordFailedLogin(rateLimitKey);
             return res.status(401).json({ success: false, message: 'Invalid credentials. Please check your password.' });
         }
+
+        // Clear failed attempts on successful verification
+        clearLoginAttempts(rateLimitKey);
 
         const role = user.role || 'customer';
         const { token } = createSession({ ...user, role });
@@ -413,6 +559,11 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 // 3. POST Verify Phone Number
 app.post('/api/auth/verify-phone', async (req, res) => {
     try {
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+        if (!checkGeneralRateLimit(`phone-verify:${clientIp}`, 10, 10 * 60 * 1000)) {
+            return res.status(429).json({ success: false, message: 'Too many verification attempts. Please wait 10 minutes.' });
+        }
+
         const { phone } = req.body;
         if (!phone) {
             return res.status(400).json({ success: false, message: 'Phone number is required' });
@@ -423,11 +574,22 @@ app.post('/api/auth/verify-phone', async (req, res) => {
             return res.status(404).json({ success: false, message: 'No registered user account found with this phone number' });
         }
 
+        // Explicitly forbid phone recovery for administrator roles
+        if (user.role === 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Administrator accounts cannot be reset via public phone recovery. Please use administrator master credentials.'
+            });
+        }
+
+        const resetToken = createPasswordResetToken(user);
+
         res.json({
             success: true,
             message: 'Phone number verified successfully',
             phone: user.phone,
-            user_name: user.full_name
+            user_name: user.full_name,
+            reset_token: resetToken
         });
     } catch (error) {
         console.error('Error verifying phone:', error);
@@ -438,15 +600,36 @@ app.post('/api/auth/verify-phone', async (req, res) => {
 // 4. POST Reset Password via Phone Verification
 app.post('/api/auth/reset-password', async (req, res) => {
     try {
-        const { phone, new_password } = req.body;
+        const { phone, new_password, reset_token } = req.body;
 
-        if (!phone || !new_password) {
-            return res.status(400).json({ success: false, message: 'Phone number and new password are required' });
+        if (!phone || !new_password || !reset_token) {
+            return res.status(400).json({ success: false, message: 'Phone number, new password, and reset token are required' });
+        }
+
+        if (typeof new_password !== 'string' || new_password.length < 6 || new_password.length > 128) {
+            return res.status(400).json({ success: false, message: 'Password must be between 6 and 128 characters long' });
+        }
+
+        const tokenPayload = verifyPasswordResetToken(reset_token, phone);
+        if (!tokenPayload) {
+            return res.status(403).json({ success: false, message: 'Invalid or expired password reset token. Please re-verify your phone number.' });
+        }
+
+        const targetUser = await UserDAO.findById(tokenPayload.userId);
+        if (!targetUser || targetUser.role === 'admin') {
+            return res.status(403).json({ success: false, message: 'Administrator accounts cannot be modified via phone reset.' });
         }
 
         const updatedUser = await UserDAO.updatePasswordByPhone(phone, new_password);
         if (!updatedUser) {
             return res.status(404).json({ success: false, message: 'Failed to find account associated with this phone' });
+        }
+
+        // Invalidate any existing active sessions for this user for security
+        for (const [token, session] of activeSessions.entries()) {
+            if (session.id === targetUser.id) {
+                activeSessions.delete(token);
+            }
         }
 
         res.json({
@@ -586,11 +769,31 @@ app.get('/api/orders/all', requireAdmin, async (req, res) => {
 // 9. POST Create New Order (Protected - Authenticated user)
 app.post('/api/orders', requireAuth, async (req, res) => {
     try {
+        const validOrderTypes = ['delivery', 'dine_in', 'takeaway'];
+        const orderType = validOrderTypes.includes(req.body.order_type) ? req.body.order_type : 'delivery';
+        const subtotal = Math.max(0, parseFloat(req.body.subtotal || 0));
+        const deliveryFee = orderType === 'delivery' ? 2.00 : 0.00;
+        const totalAmount = Math.max(0, subtotal + deliveryFee);
+
+        const sanitizedItems = Array.isArray(req.body.items) ? req.body.items.slice(0, 50).map(it => ({
+            id: String(it.id || ''),
+            item_name: String(it.item_name || it.name || 'Menu Item').slice(0, 100),
+            unit_price: Math.max(0, parseFloat(it.unit_price || it.price || 0)),
+            quantity: Math.max(1, Math.min(100, parseInt(it.quantity || 1, 10)))
+        })) : [];
+
         const orderData = {
             ...req.body,
+            order_type: orderType,
+            subtotal: subtotal,
+            delivery_fee: deliveryFee,
+            total_amount: totalAmount,
+            items: sanitizedItems,
             user_id: req.user.id,
-            customer_name: req.body.customer_name || req.user.full_name,
-            phone: req.body.phone || req.user.phone || ''
+            customer_name: String(req.body.customer_name || req.user.full_name || 'Customer').slice(0, 100),
+            phone: String(req.body.phone || req.user.phone || '').slice(0, 30),
+            delivery_address: String(req.body.delivery_address || '').slice(0, 255),
+            table_number: String(req.body.table_number || '').slice(0, 20)
         };
         const newOrder = await UserDAO.createOrder(orderData);
 
@@ -609,14 +812,24 @@ app.post('/api/orders', requireAuth, async (req, res) => {
 // 10. PUT Update Order & Payment Status (Admin Action - Protected Admin Only)
 app.put('/api/orders/:id/status', requireAdmin, async (req, res) => {
     try {
-        const orderId = req.params.id;
+        const orderId = String(req.params.id || '').trim();
         const { status, payment_status } = req.body;
+
+        const validStatuses = ['pending', 'accepted', 'preparing', 'out_for_delivery', 'completed', 'cancelled'];
+        const validPaymentStatuses = ['pending', 'paid', 'refunded', 'failed'];
+
+        if (status && !validStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: 'Invalid order status specified' });
+        }
+        if (payment_status && !validPaymentStatuses.includes(payment_status)) {
+            return res.status(400).json({ success: false, message: 'Invalid payment status specified' });
+        }
 
         const updatedOrder = await UserDAO.updateOrderStatus(orderId, status, payment_status);
 
         res.json({
             success: true,
-            message: `Order #${orderId} status updated to ${status}`,
+            message: `Order #${orderId} status updated successfully`,
             order: updatedOrder
         });
     } catch (error) {

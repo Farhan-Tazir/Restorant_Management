@@ -17,6 +17,16 @@
 
 const API_BASE = '/api';
 
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 window.handleLogout = function() {
     if (window.HotalStore) window.HotalStore.logoutUser();
     window.location.href = 'login.html';
@@ -231,7 +241,7 @@ function updateProfileUI(profile) {
     if (navUser) navUser.textContent = name.split(' ')[0] || 'User';
     if (heroUser) heroUser.textContent = name;
     if (rewardPts) rewardPts.textContent = profile.reward_points !== undefined ? profile.reward_points : 0;
-    if (loyaltyBadge) loyaltyBadge.innerHTML = `<i class='bx bxs-star'></i> ${profile.loyalty_badge || 'Silver Member'}`;
+    if (loyaltyBadge) loyaltyBadge.innerHTML = `<i class='bx bxs-star'></i> ${escapeHtml(profile.loyalty_badge || 'Silver Member')}`;
 
     const profName = document.querySelector('#prof-name');
     const profEmail = document.querySelector('#prof-email');
@@ -306,46 +316,59 @@ async function initOrdersData() {
 
     // Overview tab recent orders (Top 3)
     if (overviewRecentBody) {
-        overviewRecentBody.innerHTML = userOrders.slice(0, 3).map(order => `
+        overviewRecentBody.innerHTML = userOrders.slice(0, 3).map(order => {
+            const safeId = escapeHtml(order.id || order.order_number || '');
+            const safeDate = escapeHtml(order.date || (order.created_at ? new Date(order.created_at).toLocaleDateString() : ''));
+            const safeItems = escapeHtml(order.items || (order.items_summary ? order.items_summary : 'Selected Items'));
+            const total = parseFloat(order.total_amount || order.total || 0).toFixed(2);
+            return `
             <tr>
-                <td class="order-id-tag">#${order.id || order.order_number}</td>
-                <td>${order.date || new Date(order.created_at).toLocaleDateString()}</td>
-                <td style="max-width: 220px;">${order.items || (order.items_summary ? order.items_summary : 'Selected Items')}</td>
-                <td style="font-weight: 600; color: var(--main-color);">$${parseFloat(order.total_amount || order.total || 0).toFixed(2)}</td>
+                <td class="order-id-tag">#${safeId}</td>
+                <td>${safeDate}</td>
+                <td style="max-width: 220px;">${safeItems}</td>
+                <td style="font-weight: 600; color: var(--main-color);">$${total}</td>
                 <td>${formatStatusBadge(order.status)}</td>
                 <td>
-                    <button class="action-btn-sm" onclick="reorderItems('${order.id || order.order_number}')">
+                    <button class="action-btn-sm" onclick="reorderItems('${safeId}')">
                         <i class='bx bx-refresh'></i> Re-order
                     </button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
     // Full orders tab
     if (fullOrdersBody) {
-        fullOrdersBody.innerHTML = userOrders.map(order => `
+        fullOrdersBody.innerHTML = userOrders.map(order => {
+            const safeId = escapeHtml(order.id || order.order_number || '');
+            const safeDate = escapeHtml(order.date || (order.created_at ? new Date(order.created_at).toLocaleDateString() : ''));
+            const safeType = escapeHtml(order.type || order.order_type || 'Delivery');
+            const safeItems = escapeHtml(order.items || 'Food Items');
+            const total = parseFloat(order.total_amount || order.total || 0).toFixed(2);
+            const isPaid = order.payment_status === 'paid';
+            const safeMethod = escapeHtml(order.payment_method || 'COD');
+            return `
             <tr>
-                <td class="order-id-tag">#${order.id || order.order_number}</td>
-                <td>${order.date || new Date(order.created_at).toLocaleDateString()}</td>
-                <td><span style="font-size: 0.85rem; background: #252525; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">${order.type || order.order_type || 'Delivery'}</span></td>
-                <td style="max-width: 220px;">${order.items || 'Food Items'}</td>
+                <td class="order-id-tag">#${safeId}</td>
+                <td>${safeDate}</td>
+                <td><span style="font-size: 0.85rem; background: #252525; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">${safeType}</span></td>
+                <td style="max-width: 220px;">${safeItems}</td>
                 <td>
-                    <strong style="color: var(--main-color);">$${parseFloat(order.total_amount || order.total || 0).toFixed(2)}</strong><br>
-                    <small style="color: ${order.payment_status === 'paid' ? '#2ecc71' : '#e67e22'}; font-weight: 500;">
-                        ${order.payment_status === 'paid' ? 'PAID' : 'UNPAID'} (${order.payment_method || 'COD'})
+                    <strong style="color: var(--main-color);">$${total}</strong><br>
+                    <small style="color: ${isPaid ? '#2ecc71' : '#e67e22'}; font-weight: 500;">
+                        ${isPaid ? 'PAID' : 'UNPAID'} (${safeMethod})
                     </small>
                 </td>
                 <td>${formatStatusBadge(order.status)}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">
-                        <button class="action-btn-sm" onclick="reorderItems('${order.id || order.order_number}')">
+                        <button class="action-btn-sm" onclick="reorderItems('${safeId}')">
                             <i class='bx bx-refresh'></i> Re-order
                         </button>
                     </div>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 }
 
@@ -369,9 +392,9 @@ async function initFavoritesGrid() {
     }
 
     container.innerHTML = items.map(item => `
-        <div class="item-card" data-id="${item.id}">
+        <div class="item-card" data-id="${escapeHtml(item.id)}">
             <div class="item-card-header">
-                <span class="badge-category">${item.category || 'Special'}</span>
+                <span class="badge-category">${escapeHtml(item.category || 'Special')}</span>
                 <span class="status-badge ${item.isAvailable !== false ? 'available' : 'unavailable'}">
                     <i class='bx ${item.isAvailable !== false ? 'bx-check' : 'bx-x'}'></i>
                     ${item.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
@@ -379,16 +402,16 @@ async function initFavoritesGrid() {
             </div>
 
             <div class="item-image-wrapper">
-                <img src="${item.image || item.image_url || 'images/fast-food.png'}" alt="${item.name}" onerror="this.src='images/fast-food.png'">
+                <img src="${escapeHtml(item.image || item.image_url || 'images/fast-food.png')}" alt="${escapeHtml(item.name)}" onerror="this.src='images/fast-food.png'">
             </div>
 
             <div class="item-details">
-                <h3>${item.name}</h3>
-                <p>${item.description || 'Delicious freshly prepared dish.'}</p>
+                <h3>${escapeHtml(item.name)}</h3>
+                <p>${escapeHtml(item.description || 'Delicious freshly prepared dish.')}</p>
             </div>
 
             <div class="item-bottom">
-                <div class="item-price">$${parseFloat(item.price).toFixed(2)}</div>
+                <div class="item-price">$${parseFloat(item.price || 0).toFixed(2)}</div>
                 <div class="item-actions">
                     <button class="icon-btn fav-btn liked" onclick="toggleFavorite(this)" title="Toggle Favorite">
                         <i class='bx bxs-heart' style="color: #e74c3c;"></i>

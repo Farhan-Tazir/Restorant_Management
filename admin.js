@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="icon-btn edit-btn" onclick="handleEditModal('${item.id}')" title="Edit Item">
                             <i class='bx bx-edit'></i>
                         </button>
-                        <button class="icon-btn delete-btn" onclick="handleDeletePrompt('${item.id}', '${escapeHtml(item.name)}')" title="Delete Item">
+                        <button class="icon-btn delete-btn" onclick="handleDeletePrompt('${item.id}')" title="Delete Item">
                             <i class='bx bx-trash'></i>
                         </button>
                     </div>
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="icon-btn edit-btn" onclick="handleEditModal('${item.id}')" title="Edit">
                             <i class='bx bx-edit'></i>
                         </button>
-                        <button class="icon-btn delete-btn" onclick="handleDeletePrompt('${item.id}', '${escapeHtml(item.name)}')" title="Delete">
+                        <button class="icon-btn delete-btn" onclick="handleDeletePrompt('${item.id}')" title="Delete">
                             <i class='bx bx-trash'></i>
                         </button>
                     </div>
@@ -382,7 +382,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.handleDeletePrompt = function(id, name) {
         itemToDeleteId = id;
-        if (deleteItemName) deleteItemName.textContent = `"${name}"`;
+        if (deleteItemName) {
+            const item = window.HotalStore ? window.HotalStore.getItems().find(i => i.id === id) : null;
+            deleteItemName.textContent = item ? `"${item.name}"` : (name ? `"${name}"` : 'this item');
+        }
         if (deleteModal) deleteModal.classList.add('open');
     };
 

@@ -37,6 +37,16 @@ sr.reveal('.row-btn,.shop-content',{delay:300});
 sr.reveal('.review-content,.contact',{delay:300});
 
 // Dynamic rendering of shop items managed via Admin Dashboard
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function renderShopItems() {
     const shopContent = document.querySelector('.shop-content');
     if (!shopContent || !window.HotalStore) return;
@@ -48,10 +58,12 @@ function renderShopItems() {
         return;
     }
 
+    const esc = window.HotalStore.escapeHtml || escapeHtml;
+
     shopContent.innerHTML = items.map(item => `
-        <div class="item-card" data-id="${item.id}">
+        <div class="item-card" data-id="${esc(item.id)}">
             <div class="item-card-header">
-                <span class="badge-category">${item.category || 'Special'}</span>
+                <span class="badge-category">${esc(item.category || 'Special')}</span>
                 <span class="status-badge ${item.isAvailable ? 'available' : 'unavailable'}">
                     <i class='bx ${item.isAvailable ? 'bx-check' : 'bx-x'}'></i>
                     ${item.isAvailable ? 'In Stock' : 'Out of Stock'}
@@ -59,16 +71,16 @@ function renderShopItems() {
             </div>
 
             <div class="item-image-wrapper">
-                <img src="${item.image}" alt="${item.name}" onerror="this.src='images/fast-food.png'">
+                <img src="${esc(item.image)}" alt="${esc(item.name)}" onerror="this.src='images/fast-food.png'">
             </div>
 
             <div class="item-details">
-                <h3>${item.name}</h3>
-                <p>${item.description || 'Freshly prepared with authentic ingredients.'}</p>
+                <h3>${esc(item.name)}</h3>
+                <p>${esc(item.description || 'Freshly prepared with authentic ingredients.')}</p>
             </div>
 
             <div class="item-bottom">
-                <div class="item-price">$${parseFloat(item.price).toFixed(2)}</div>
+                <div class="item-price">$${parseFloat(item.price || 0).toFixed(2)}</div>
                 <div class="item-actions">
                     <button class="icon-btn fav-btn" onclick="this.classList.toggle('liked')" title="Add to Favorites">
                         <i class='bx bx-heart'></i>
