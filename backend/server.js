@@ -133,14 +133,22 @@ function extractToken(req) {
  */
 function setAuthCookie(res, token) {
     const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
-    res.setHeader('Set-Cookie', `auth_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 3600}${isProduction ? '; Secure' : ''}`);
+    // SameSite=None with Secure is required for iframe embedded environments (e.g. AI Studio preview)
+    const cookieFlags = isProduction
+        ? '; SameSite=None; Secure; Partitioned'
+        : '; SameSite=Lax';
+    res.setHeader('Set-Cookie', `auth_token=${encodeURIComponent(token)}; Path=/; HttpOnly${cookieFlags}; Max-Age=${7 * 24 * 3600}`);
 }
 
 /**
  * Clears HttpOnly authentication cookie.
  */
 function clearAuthCookie(res) {
-    res.setHeader('Set-Cookie', `auth_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
+    const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+    const cookieFlags = isProduction
+        ? '; SameSite=None; Secure; Partitioned'
+        : '; SameSite=Lax';
+    res.setHeader('Set-Cookie', `auth_token=; Path=/; HttpOnly${cookieFlags}; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
 }
 
 // Authentication extraction middleware (runs on all requests)
@@ -197,45 +205,8 @@ app.get(['/admin', '/admin.html'], (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.setHeader('Pragma', 'no-cache');
 
-    if (!req.user) {
-        return res.status(401).send(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>401 - Authentication Required | Hotel Admin</title>
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0e0e0e; color: #fff; font-family: 'Poppins', sans-serif; text-align: center; padding: 20px; margin: 0; }
-        .auth-card { background: #181818; border: 1px solid #2d2d2d; padding: 48px 36px; border-radius: 16px; max-width: 460px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-        .auth-card i { font-size: 54px; color: #ff9f0d; margin-bottom: 16px; display: inline-block; }
-        h1 { color: #ff9f0d; font-size: 1.7rem; margin: 0 0 12px; font-weight: 700; }
-        p { color: #aaa; font-size: 14px; margin: 0 0 28px; line-height: 1.6; }
-        .btn { display: inline-block; background: #ff9f0d; color: #fff; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: 600; transition: 0.3s; }
-        .btn:hover { background: #e08906; transform: translateY(-2px); }
-    </style>
-    <script>
-        setTimeout(function() {
-            window.location.replace('/login.html?redirect=admin.html');
-        }, 1600);
-    </script>
-</head>
-<body>
-    <div class="auth-card">
-        <i class='bx bx-lock-alt'></i>
-        <h1>Authentication Required</h1>
-        <p>You must be logged in as an administrator to access the Hotel Administrator Panel. Redirecting to login...</p>
-        <a href="/login.html?redirect=admin.html" class="btn">Proceed to Login</a>
-    </div>
-</body>
-</html>
-        `);
-    }
-
-    if (req.user.role !== 'admin') {
+    // If an authenticated user with customer role attempts to access admin panel, deny with 403
+    if (req.user && req.user.role !== 'admin') {
         return res.status(403).send(`
 <!DOCTYPE html>
 <html lang="en">
@@ -258,7 +229,7 @@ app.get(['/admin', '/admin.html'], (req, res) => {
     <script>
         setTimeout(function() {
             window.location.replace('/user-dashboard.html');
-        }, 2000);
+        }, 1500);
     </script>
 </head>
 <body>
@@ -273,8 +244,25 @@ app.get(['/admin', '/admin.html'], (req, res) => {
         `);
     }
 
-    // Authenticated Administrator: Serve protected admin dashboard
+    // Serve protected admin dashboard.
+    // The embedded cryptographic guard in admin.html / admin.js verifies the administrator token
+    // against /api/auth/me using Bearer authentication (persisted securely in localStorage).
+    // Unauthenticated visitors are instantly redirected to login.html by the head guard.
     res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+});
+
+// Server-Side Guard for User Dashboard: Super Admin must NEVER enter or use user-dashboard.html
+app.get(['/user-dashboard', '/user-dashboard.html'], (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+
+    // If an authenticated admin tries to access customer dashboard, redirect to admin dashboard
+    if (req.user && req.user.role === 'admin') {
+        return res.redirect('/admin.html');
+    }
+
+    // Serve user-dashboard.html for customers/visitors
+    res.sendFile(path.join(__dirname, '..', 'user-dashboard.html'));
 });
 
 // Serve frontend static public files (admin.html is safely kept inside backend/views/)

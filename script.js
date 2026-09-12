@@ -96,10 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userIcon) {
         userIcon.addEventListener('click', (e) => {
             e.preventDefault();
-            if (window.HotalStore && window.HotalStore.isLoggedIn()) {
-                window.location.href = 'user-dashboard.html';
+            if (window.HotalStore && typeof window.HotalStore.navigateToUserPortal === 'function') {
+                window.HotalStore.navigateToUserPortal();
+            } else if (window.HotalStore && window.HotalStore.isLoggedIn()) {
+                window.location.href = window.HotalStore.isAdmin() ? 'admin.html' : 'user-dashboard.html';
             } else {
-                window.location.href = 'login.html?redirect=user-dashboard.html';
+                window.location.href = 'login.html';
             }
         });
     }

@@ -11,6 +11,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Client-Side Authorization Synchronous Guard -->
+    <script src="/items-store.js"></script>
+    <script>
+    (function() {
+        if (typeof window === 'undefined') return;
+        const store = window.HotalStore;
+        if (!store || !store.isLoggedIn()) {
+            window.location.replace('login.html?redirect=admin.html');
+            return;
+        }
+        if (!store.isAdmin()) {
+            window.location.replace('user-dashboard.html');
+            return;
+        }
+    })();
+    </script>
 </head>
 <body>
 
@@ -22,10 +39,6 @@
         </a>
 
         <div class="header-right">
-            <a href="user-dashboard.html" class="btn-visit-site" title="User Dashboard" style="background: rgba(255, 159, 13, 0.15); color: var(--main-color); border: 1px solid var(--main-color);">
-                <i class='bx bx-user-circle'></i>
-                <span>User Dashboard</span>
-            </a>
             <a href="index.html" class="btn-visit-site" title="Go to Main Website">
                 <i class='bx bx-store-alt'></i>
                 <span>View Main Website</span>
@@ -346,7 +359,6 @@
     <div class="toast-container" id="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="/items-store.js"></script>
     <script src="/admin.js"></script>
 
     <!-- Mobile Warning Overlay -->

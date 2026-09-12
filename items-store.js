@@ -1,5 +1,10 @@
 // items-store.js - Shared Data Store for Restaurant Menu Items, Users, Orders & Payments
 
+(function() {
+if (typeof window !== 'undefined' && window.HotalStore) {
+    return;
+}
+
 const DEFAULT_ITEMS = [
     {
         id: 'item-1',
@@ -330,6 +335,35 @@ function logoutUser() {
     } catch (e) {}
 }
 
+function navigateToUserPortal() {
+    if (!isLoggedIn()) {
+        window.location.href = 'login.html';
+        return;
+    }
+    if (isAdmin()) {
+        window.location.href = 'admin.html';
+    } else {
+        window.location.href = 'user-dashboard.html';
+    }
+}
+
+// Attach auth-aware navigation for profile/dashboard icons across all pages
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('click', (e) => {
+            const userTrigger = e.target.closest('#nav-user-icon, #order-nav-user-icon, a[title="User Profile"], a[title="User Dashboard"], .navlist a[href="user-dashboard.html"], .navlist a[href="./user-dashboard.html"]');
+            if (userTrigger) {
+                // If it's a tab inside the user-dashboard itself, ignore
+                if (userTrigger.classList.contains('tab-btn') || userTrigger.closest('.dashboard-sidebar')) return;
+                // If already on user-dashboard as a customer, allow normal in-page interaction
+                if (window.location.pathname.endsWith('user-dashboard.html') && !isAdmin()) return;
+                e.preventDefault();
+                navigateToUserPortal();
+            }
+        });
+    });
+}
+
 function verifyPhone(phone) {
     const users = getUsers();
     const normalized = phone.trim().replace(/\s+/g, '');
@@ -488,6 +522,7 @@ window.HotalStore = {
     getCurrentUser,
     setCurrentUser,
     logoutUser,
+    navigateToUserPortal,
     isLoggedIn,
     isAdmin,
     getAuthHeaders,
@@ -504,3 +539,4 @@ window.HotalStore = {
     getUserOrders,
     getLatestActiveOrder
 };
+})();

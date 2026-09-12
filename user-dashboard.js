@@ -1,9 +1,19 @@
 // user-dashboard.js - Interactive User Dashboard Logic (Connected to Shared Store & SQL API)
 
-// Authentication Guard: Ensure user is authenticated before accessing dashboard
-if (typeof window !== 'undefined' && (!window.HotalStore || !window.HotalStore.isLoggedIn())) {
-    window.location.replace('login.html?redirect=user-dashboard.html');
-}
+// Authentication & Role Guard: Ensure user is a customer, NOT an admin or unauthenticated
+(function enforceCustomerAccess() {
+    if (typeof window === 'undefined') return;
+    const store = window.HotalStore;
+    if (!store || !store.isLoggedIn()) {
+        window.location.replace('login.html?redirect=user-dashboard.html');
+        return;
+    }
+    // Super Admin must NEVER be able to enter or use user-dashboard.html
+    if (store.isAdmin()) {
+        window.location.replace('admin.html');
+        return;
+    }
+})();
 
 const API_BASE = '/api';
 
@@ -12,11 +22,38 @@ window.handleLogout = function() {
     window.location.href = 'login.html';
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (!window.HotalStore || !window.HotalStore.isLoggedIn()) {
         window.location.replace('login.html?redirect=user-dashboard.html');
         return;
     }
+
+    if (window.HotalStore.isAdmin()) {
+        window.location.replace('admin.html');
+        return;
+    }
+
+    // Authoritative Server Role & Session Check
+    try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+            headers: window.HotalStore.getAuthHeaders()
+        });
+        if (res.status === 401) {
+            window.HotalStore.logoutUser();
+            window.location.replace('login.html?redirect=user-dashboard.html');
+            return;
+        }
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && data.user) {
+                // If server says this account is an administrator, redirect to admin dashboard immediately
+                if (data.user.role === 'admin') {
+                    window.location.replace('admin.html');
+                    return;
+                }
+            }
+        }
+    } catch (_) {}
 
     initTabNavigation();
     initUserProfile();

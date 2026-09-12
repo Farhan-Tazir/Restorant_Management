@@ -3,31 +3,35 @@
 // Authentication & Admin Authorization Guard: Verify session with the server
 (async function verifyAdminAuth() {
     if (typeof window === 'undefined') return;
+    const store = window.HotalStore;
+    if (!store || !store.isLoggedIn()) {
+        window.location.replace('login.html?redirect=admin.html');
+        return;
+    }
+    if (!store.isAdmin()) {
+        window.location.replace('user-dashboard.html');
+        return;
+    }
+
     try {
-        const headers = window.HotalStore ? window.HotalStore.getAuthHeaders() : {};
+        const headers = store.getAuthHeaders();
         const res = await fetch('/api/auth/me', { headers });
         if (res.status === 401) {
+            store.logoutUser();
             window.location.replace('login.html?redirect=admin.html');
             return;
         }
         if (res.status === 403) {
-            alert('Access denied: Administrator privileges required.');
             window.location.replace('user-dashboard.html');
             return;
         }
         const data = await res.json();
         if (!data.success || !data.user || data.user.role !== 'admin') {
-            alert('Access denied: Administrator privileges required.');
             window.location.replace('user-dashboard.html');
             return;
         }
     } catch (_) {
-        const store = window.HotalStore;
-        if (!store || !store.isLoggedIn()) {
-            window.location.replace('login.html?redirect=admin.html');
-        } else if (!store.isAdmin()) {
-            window.location.replace('user-dashboard.html');
-        }
+        // Standalone or offline mode: store.isAdmin() check passed above
     }
 })();
 
