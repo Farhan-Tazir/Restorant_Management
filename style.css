@@ -868,6 +868,212 @@ header.sticky{
     }
 }
 
+/* ============ 350px BREAKPOINT (Compact Mobile Phones) ============ */
+@media (max-width: 350px) {
+    :root {
+        --big-font: 1.75rem;
+        --h2-font: 1.4rem;
+        --p-font: 12px;
+    }
+
+    html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    header {
+        padding: 10px 4% !important;
+    }
+
+    .logo {
+        font-size: 19px;
+    }
+
+    .nav-icons {
+        gap: 4px;
+    }
+
+    .nav-icons a i,
+    #menu-icon {
+        font-size: 20px;
+        padding: 3px;
+    }
+
+    .home {
+        height: auto;
+        min-height: 90vh;
+        padding: 80px 4% 25px;
+    }
+
+    .home-text h1 {
+        font-size: 1.55rem;
+        line-height: 1.25;
+        margin-bottom: 12px;
+    }
+
+    .home-text p {
+        font-size: 12px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    .home-text .btn,
+    .home-text .btn2 {
+        display: flex;
+        width: 100%;
+        margin: 6px 0;
+        padding: 8px 14px;
+        font-size: 12px;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .home-img img {
+        width: 100%;
+        max-width: 210px;
+        margin: 15px auto 0;
+        display: block;
+    }
+
+    .container {
+        padding: 25px 4%;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .container-box {
+        padding: 14px 12px;
+    }
+
+    .container-box img {
+        width: 48px;
+        height: auto;
+    }
+
+    .container-box h3 {
+        font-size: 15px;
+        margin: 8px 0;
+    }
+
+    .about {
+        padding: 25px 4%;
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
+    .about-text h2 {
+        font-size: 1.35rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .about-text p {
+        font-size: 12px;
+        line-height: 1.55;
+        margin-bottom: 1.2rem;
+    }
+
+    .about-text .btn {
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+
+    .about-img img {
+        width: 100%;
+        max-width: 240px;
+        margin: 0 auto;
+        display: block;
+    }
+
+    .shop {
+        padding: 25px 4%;
+    }
+
+    .middle-text h4 {
+        font-size: 13px;
+        margin-bottom: 4px;
+    }
+
+    .middle-text h2 {
+        font-size: 1.35rem;
+    }
+
+    .shop-content {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-top: 1.5rem;
+    }
+
+    .item-card {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .item-image-wrapper {
+        height: 110px;
+        margin-bottom: 10px;
+    }
+
+    .item-details h3 {
+        font-size: 1rem;
+        margin-bottom: 4px;
+    }
+
+    .item-details p {
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .item-bottom {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-top: 10px;
+    }
+
+    .item-price {
+        font-size: 1.15rem;
+    }
+
+    .btn-order-pill {
+        padding: 6px 12px;
+        font-size: 0.76rem;
+    }
+
+    .review-content {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .box {
+        padding: 14px 12px;
+    }
+
+    .bx-img img {
+        width: 42px;
+        height: 42px;
+    }
+
+    .contact {
+        padding: 25px 4%;
+    }
+
+    .contact-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .contact-info a {
+        font-size: 12px;
+    }
+
+    .footer {
+        padding: 18px 4%;
+        font-size: 12px;
+    }
+}
+
 /* ============ 300px BREAKPOINT (Ultra-compact mobile / small phones) ============ */
 @media (max-width: 300px) {
     :root {

@@ -1172,6 +1172,174 @@ footer p span {
     }
 }
 
+/* ============ 350px BREAKPOINT (Compact Mobile Phones) ============ */
+@media (max-width: 350px) {
+    html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    .dashboard-header {
+        padding: 10px 3%;
+        gap: 6px;
+    }
+
+    .dash-logo {
+        font-size: 16px;
+    }
+
+    .dash-logo i {
+        font-size: 20px;
+    }
+
+    .header-actions {
+        gap: 6px;
+    }
+
+    .btn-header-action {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    .dashboard-main {
+        padding: 14px 3%;
+    }
+
+    .hero-profile-card {
+        padding: 16px 12px;
+        border-radius: 12px;
+        gap: 12px;
+    }
+
+    .hero-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.3rem;
+    }
+
+    .hero-text h1 {
+        font-size: 1.3rem;
+    }
+
+    .hero-text p {
+        font-size: 12px;
+    }
+
+    .loyalty-badge {
+        font-size: 0.72rem;
+        padding: 3px 8px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 14px 12px;
+        border-radius: 12px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+    }
+
+    .dashboard-tabs {
+        display: flex;
+        overflow-x: auto;
+        gap: 4px;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .dashboard-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tab-btn {
+        font-size: 0.74rem;
+        padding: 6px 9px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        border-radius: 10px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+
+    .order-id-tag {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+    }
+
+    .status-pill {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+
+    .action-btn-sm {
+        padding: 4px 8px;
+        font-size: 0.72rem;
+    }
+
+    .profile-card {
+        padding: 16px 12px;
+        border-radius: 12px;
+    }
+
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .modal-box {
+        padding: 16px 12px;
+        width: 95%;
+        max-width: 320px;
+        border-radius: 12px;
+    }
+
+    .modal-header h3 {
+        font-size: 1.15rem;
+    }
+
+    .item-card {
+        padding: 12px;
+    }
+
+    .item-image-wrapper {
+        height: 105px;
+    }
+
+    .item-price {
+        font-size: 1.1rem;
+    }
+
+    .btn-order-pill {
+        padding: 6px 10px;
+        font-size: 0.74rem;
+    }
+
+    footer {
+        padding: 16px 3%;
+        font-size: 12px;
+    }
+}
+
 /* ============ 300px BREAKPOINT (Ultra-compact mobile / small phones) ============ */
 @media (max-width: 300px) {
     html, body {

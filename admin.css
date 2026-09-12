@@ -910,8 +910,8 @@ body {
     }
 }
 
-@media (max-width: 768px) {
-    /* Show full-screen warning — hide all panel content */
+@media (max-width: 992px) {
+    /* Show full-screen warning on phones and compact devices — hide all panel content */
     #mobile-warning-overlay {
         display: flex;
     }
@@ -923,5 +923,32 @@ body {
     .modal-backdrop,
     .toast-container {
         display: none !important;
+    }
+}
+
+/* 350px phone optimization for the desktop-required warning overlay */
+@media (max-width: 350px) {
+    #mobile-warning-overlay {
+        padding: 1.5rem 1rem;
+    }
+
+    #mobile-warning-box {
+        max-width: 290px;
+    }
+
+    #mobile-warning-box i {
+        font-size: 3.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    #mobile-warning-box h2 {
+        font-size: 1.2rem;
+        line-height: 1.35;
+        margin-bottom: 0.5rem;
+    }
+
+    #mobile-warning-box p {
+        font-size: 0.85rem;
+        line-height: 1.45;
     }
 }
