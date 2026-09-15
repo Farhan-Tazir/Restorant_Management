@@ -3,20 +3,37 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
-// Load environment file if present (supported natively in Node.js 20+)
+// Explicitly load .env file from project root, overriding stale container variables
 try {
-    if (typeof process.loadEnvFile === 'function') {
-        process.loadEnvFile();
+    const envPath = path.resolve(__dirname, '..', '.env');
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        for (const line of envContent.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const eqIdx = trimmed.indexOf('=');
+            if (eqIdx === -1) continue;
+            const key = trimmed.slice(0, eqIdx).trim();
+            let val = trimmed.slice(eqIdx + 1).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                val = val.slice(1, -1);
+            }
+            if (key) {
+                process.env[key] = val;
+            }
+        }
     }
 } catch (_) {}
 
 const { initDatabase, UserDAO, MenuDAO } = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// Web server port is fixed to 3000 for cloud container reverse proxy routing
+const PORT = 3000;
 
 // Security Hardening: Disable information disclosure headers
 app.disable('x-powered-by');
@@ -990,8 +1007,6 @@ module.exports = app;
 
 // Start server only when running locally
 if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`=======================================================`);
         console.log(`🚀 Restaurant Management API running on port ${PORT}`);

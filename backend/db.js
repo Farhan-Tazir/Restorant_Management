@@ -2,11 +2,28 @@
 
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 
-// Load environment file if present (supported natively in Node.js 20+)
+// Explicitly load .env file from project root, overriding stale container variables
 try {
-    if (typeof process.loadEnvFile === 'function') {
-        process.loadEnvFile();
+    const envPath = path.resolve(__dirname, '..', '.env');
+    if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        for (const line of envContent.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const eqIdx = trimmed.indexOf('=');
+            if (eqIdx === -1) continue;
+            const key = trimmed.slice(0, eqIdx).trim();
+            let val = trimmed.slice(eqIdx + 1).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                val = val.slice(1, -1);
+            }
+            if (key) {
+                process.env[key] = val;
+            }
+        }
     }
 } catch (_) {}
 
@@ -167,7 +184,10 @@ let isConnected = false;
 async function initDatabase() {
     const rawUrl = process.env.DATABASE_URL ? String(process.env.DATABASE_URL).trim() : '';
     const hasValidUrl = rawUrl.startsWith('mysql://') || rawUrl.startsWith('mysql2://');
-    const hasHost = Boolean(process.env.DB_HOST && String(process.env.DB_HOST).trim());
+    
+    // Validate host: filter out unresolvable container default like "farhan1709"
+    const rawHost = process.env.DB_HOST ? String(process.env.DB_HOST).trim() : '';
+    const hasHost = Boolean(rawHost && rawHost !== 'farhan1709' && rawHost.includes('.'));
 
     if (!hasValidUrl && !hasHost) {
         isConnected = false;
@@ -177,33 +197,215 @@ async function initDatabase() {
 
     try {
         if (hasValidUrl) {
-            console.log('[SQL Database] Attempting connection to MySQL using DATABASE_URL configuration.');
-            dbPool = mysql.createPool(rawUrl);
-        } else {
-            console.log('[SQL Database] Attempting connection to MySQL using discrete DB_* environment variables.');
-            const dbConfig = {
-                host: process.env.DB_HOST,
-                user: process.env.DB_USER || 'root',
-                password: process.env.DB_PASSWORD || '',
-                database: process.env.DB_NAME || 'hotel_db',
+            console.log('[SQL Database] Connecting to MySQL using DATABASE_URL configuration.');
+            const isSsl = rawUrl.includes('aivencloud.com') || rawUrl.includes('ssl-mode') || rawUrl.includes('ssl=');
+            const cleanUrl = rawUrl.replace(/([?&])ssl-mode=[^&]*/gi, '$1').replace(/\?&/, '?').replace(/[?&]$/, '');
+            const poolConfig = {
+                uri: cleanUrl,
                 waitForConnections: true,
                 connectionLimit: 10,
                 queueLimit: 0,
-                connectTimeout: 3000
+                connectTimeout: 8000
             };
+            if (isSsl) {
+                poolConfig.ssl = { rejectUnauthorized: false };
+            }
+            dbPool = mysql.createPool(poolConfig);
+        } else {
+            console.log('[SQL Database] Connecting to MySQL using discrete DB_* environment variables.');
+            const dbPort = parseInt(process.env.DB_PORT || '3306', 10);
+            const dbConfig = {
+                host: rawHost,
+                port: isNaN(dbPort) ? 3306 : dbPort,
+                user: process.env.DB_USER || 'avnadmin',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_NAME || 'defaultdb',
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                connectTimeout: 8000
+            };
+            if (rawHost.includes('aivencloud') || process.env.DB_SSL === 'true') {
+                dbConfig.ssl = { rejectUnauthorized: false };
+            }
             dbPool = mysql.createPool(dbConfig);
         }
 
         // Test connection
         const conn = await dbPool.getConnection();
         await conn.ping();
-        conn.release();
         isConnected = true;
         console.log('[SQL Database] Connected successfully to MySQL database.');
+
+        // Run automated schema validation and seed
+        await migrateAndSeedDatabase(conn);
+        conn.release();
     } catch (err) {
         isConnected = false;
         console.error('[SQL Database] Connection attempt failed:', err.message);
         console.log('[SQL Database] Operating in standalone in-memory fallback mode due to database connection error.');
+    }
+}
+
+async function migrateAndSeedDatabase(conn) {
+    try {
+        // 1. users table
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                full_name VARCHAR(120) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                role VARCHAR(30) NOT NULL DEFAULT 'customer',
+                phone VARCHAR(30),
+                address TEXT,
+                preferred_payment VARCHAR(50) DEFAULT 'Cash on Delivery',
+                reward_points INT NOT NULL DEFAULT 480,
+                loyalty_badge VARCHAR(50) DEFAULT 'Gold Member',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB;
+        `);
+
+        // Check if 'role' column exists in users
+        const [cols] = await conn.query('DESCRIBE users');
+        const hasRole = cols.some(c => c.Field === 'role');
+        if (!hasRole) {
+            await conn.query("ALTER TABLE users ADD COLUMN role VARCHAR(30) NOT NULL DEFAULT 'customer' AFTER password_hash");
+        }
+
+        // 2. menu_categories
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS menu_categories (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(80) NOT NULL UNIQUE,
+                display_order INT NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB;
+        `);
+
+        // 3. menu_items
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS menu_items (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                category_id BIGINT NOT NULL,
+                name VARCHAR(150) NOT NULL,
+                description TEXT,
+                price DECIMAL(10, 2) NOT NULL,
+                image_url TEXT,
+                is_available BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE RESTRICT
+            ) ENGINE=InnoDB;
+        `);
+
+        // 4. user_favorites
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS user_favorites (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                menu_item_id BIGINT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_fav (user_id, menu_item_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+        `);
+
+        // 5. orders
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS orders (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                order_number VARCHAR(30) NOT NULL UNIQUE,
+                user_id BIGINT,
+                order_type VARCHAR(20) NOT NULL DEFAULT 'delivery',
+                table_number VARCHAR(20),
+                delivery_address TEXT,
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                special_instructions TEXT,
+                subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                delivery_fee DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB;
+        `);
+
+        // 6. order_items
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS order_items (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                order_id BIGINT NOT NULL,
+                menu_item_id BIGINT,
+                item_name VARCHAR(150) NOT NULL,
+                unit_price DECIMAL(10, 2) NOT NULL,
+                quantity INT NOT NULL,
+                special_instructions TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB;
+        `);
+
+        // 7. payments
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS payments (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                order_id BIGINT NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                method VARCHAR(20) NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                transaction_reference VARCHAR(255),
+                paid_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+        `);
+
+        // Ensure Admin user is properly configured in MySQL
+        const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
+        const [existingAdmin] = await conn.query("SELECT * FROM users WHERE role = 'admin' OR email = ?", [ADMIN_EMAIL]);
+        if (existingAdmin.length === 0) {
+            await conn.query(`
+                INSERT INTO users (full_name, email, password_hash, role, phone, address, preferred_payment, reward_points, loyalty_badge)
+                VALUES (?, ?, ?, 'admin', '+92 310 3546086', 'Restaurant Headquarters, Suite 101', 'Corporate Account', 9999, 'Super Administrator')
+            `, ['Restaurant Administrator', ADMIN_EMAIL, adminHash]);
+        } else {
+            await conn.query(`
+                UPDATE users SET email = ?, password_hash = ?, role = 'admin', updated_at = NOW() WHERE id = ?
+            `, [ADMIN_EMAIL, adminHash, existingAdmin[0].id]);
+        }
+
+        // Seed menu categories if empty
+        const [cats] = await conn.query('SELECT COUNT(*) as count FROM menu_categories');
+        if (cats[0].count === 0) {
+            await conn.query(`
+                INSERT INTO menu_categories (id, name, display_order) VALUES
+                (1, 'Burgers', 1),
+                (2, 'Pizza', 2),
+                (3, 'Grill', 3),
+                (4, 'Fast Food', 4),
+                (5, 'Drinks', 5)
+            `);
+        }
+
+        // Seed menu items if empty
+        const [items] = await conn.query('SELECT COUNT(*) as count FROM menu_items');
+        if (items[0].count === 0) {
+            await conn.query(`
+                INSERT INTO menu_items (id, category_id, name, description, price, image_url) VALUES
+                (1, 1, 'Burger', 'Juicy grilled beef patty with fresh lettuce, tomato, cheese and signature sauce.', 12.00, 'images/burger-removebg-preview.png'),
+                (2, 2, 'Large Pizza', 'Cheesy pizza topped with fresh pepperoni, veggies, and classic marinara sauce.', 18.50, 'images/pizza-removebg-preview.png'),
+                (3, 3, 'Sekh Kabab', 'Tender charcoal-grilled spiced meat skewers served with mint chutney.', 14.00, 'images/sekh_kabak-removebg-preview.png'),
+                (4, 4, 'Shawarma', 'Flavorful wrapped spiced chicken with garlic sauce, veggies, and pickles.', 9.99, 'images/shawarma-removebg-preview.png')
+            `);
+        }
+
+        console.log('[SQL Database] Schema verification & migrations completed successfully.');
+    } catch (migErr) {
+        console.warn('[SQL Database] Schema migration warning:', migErr.message);
     }
 }
 
