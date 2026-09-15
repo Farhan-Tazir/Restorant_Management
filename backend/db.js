@@ -211,15 +211,23 @@ async function initDatabase() {
 const UserDAO = {
     async findByEmail(email) {
         if (!email) return null;
+        const normalized = String(email).trim().toLowerCase();
+        const variations = [normalized];
+        if (normalized.endsWith('@gmailcom')) {
+            variations.push(normalized.replace('@gmailcom', '@gmail.com'));
+        } else if (normalized.endsWith('@gmail.com')) {
+            variations.push(normalized.replace('@gmail.com', '@gmailcom'));
+        }
+
         if (isConnected && dbPool) {
             try {
-                const [rows] = await dbPool.query('SELECT * FROM users WHERE email = ?', [email]);
+                const [rows] = await dbPool.query('SELECT * FROM users WHERE email IN (?)', [variations]);
                 return rows[0] || null;
             } catch (e) {
                 console.error('SQL query error:', e);
             }
         }
-        return inMemoryDatabase.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+        return inMemoryDatabase.users.find(u => variations.includes(u.email.toLowerCase())) || null;
     },
 
     async findByPhone(phone) {
