@@ -5,7 +5,15 @@ const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const { initDatabase, UserDAO } = require('./db');
+
+// Load environment file if present (supported natively in Node.js 20+)
+try {
+    if (typeof process.loadEnvFile === 'function') {
+        process.loadEnvFile();
+    }
+} catch (_) {}
+
+const { initDatabase, UserDAO, MenuDAO } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,7 +35,13 @@ app.use(express.json({ limit: '500kb' }));
 app.use(express.urlencoded({ extended: true, limit: '500kb' }));
 
 // Server-Side Session Security & Token Configuration
-const SESSION_SECRET = process.env.SESSION_SECRET || 'hotel_mgmt_secure_session_secret_2026_x89a';
+if (!process.env.SESSION_SECRET) {
+    throw new Error(
+        'Startup Error: Required environment variable SESSION_SECRET is not set. ' +
+        'Please configure it in your .env file or deployment environment variables.'
+    );
+}
+const SESSION_SECRET = process.env.SESSION_SECRET;
 const activeSessions = new Map();
 
 // In-Memory Rate Limiting & Anti-Brute-Force Stores
@@ -769,7 +783,7 @@ app.get('/api/orders/all', requireAdmin, async (req, res) => {
 // 9. POST Create New Order (Protected - Authenticated user)
 app.post('/api/orders', requireAuth, async (req, res) => {
     try {
-        const validOrderTypes = ['delivery', 'dine_in', 'takeaway'];
+        const validOrderTypes = ['delivery', 'dine_in', 'takeaway', 'pickup'];
         const orderType = validOrderTypes.includes(req.body.order_type) ? req.body.order_type : 'delivery';
         const subtotal = Math.max(0, parseFloat(req.body.subtotal || 0));
         const deliveryFee = orderType === 'delivery' ? 2.00 : 0.00;
@@ -858,6 +872,113 @@ app.get('/api/user/favorites', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error fetching user favorites:', error);
         res.status(500).json({ success: false, message: 'Server error fetching user favorites' });
+    }
+});
+
+// 12. POST Add User Favorite (Protected - Authenticated user only)
+app.post('/api/user/favorites', requireAuth, async (req, res) => {
+    try {
+        const menuItemId = req.body.menu_item_id || req.body.menuItemId || req.body.id;
+        if (!menuItemId) {
+            return res.status(400).json({ success: false, message: 'menu_item_id is required' });
+        }
+        await UserDAO.addFavorite(req.user.id, menuItemId);
+        res.status(201).json({
+            success: true,
+            message: 'Dish added to favorites'
+        });
+    } catch (error) {
+        console.error('Error adding user favorite:', error);
+        res.status(500).json({ success: false, message: 'Server error saving favorite' });
+    }
+});
+
+// 13. DELETE Remove User Favorite (Protected - Authenticated user only)
+app.delete('/api/user/favorites/:menu_item_id', requireAuth, async (req, res) => {
+    try {
+        const menuItemId = req.params.menu_item_id;
+        if (!menuItemId) {
+            return res.status(400).json({ success: false, message: 'menu_item_id is required' });
+        }
+        await UserDAO.removeFavorite(req.user.id, menuItemId);
+        res.json({
+            success: true,
+            message: 'Dish removed from favorites'
+        });
+    } catch (error) {
+        console.error('Error removing user favorite:', error);
+        res.status(500).json({ success: false, message: 'Server error removing favorite' });
+    }
+});
+
+// 14. GET All Menu Items (Public)
+app.get('/api/menu-items', async (req, res) => {
+    try {
+        const items = await MenuDAO.getAllItems();
+        res.json({
+            success: true,
+            items: items
+        });
+    } catch (error) {
+        console.error('Error fetching menu items:', error);
+        res.status(500).json({ success: false, message: 'Server error fetching menu items' });
+    }
+});
+
+// 15. POST Create Menu Item (Admin Only)
+app.post('/api/menu-items', requireAdmin, async (req, res) => {
+    try {
+        const { name, price } = req.body;
+        if (!name || String(name).trim() === '') {
+            return res.status(400).json({ success: false, message: 'Item name is required' });
+        }
+        if (price === undefined || isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+            return res.status(400).json({ success: false, message: 'Valid non-negative item price is required' });
+        }
+
+        const newItem = await MenuDAO.addItem(req.body);
+        res.status(201).json({
+            success: true,
+            message: 'Menu item created successfully',
+            item: newItem
+        });
+    } catch (error) {
+        console.error('Error creating menu item:', error);
+        res.status(500).json({ success: false, message: 'Server error creating menu item' });
+    }
+});
+
+// 16. PUT Update Menu Item (Admin Only)
+app.put('/api/menu-items/:id', requireAdmin, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const updated = await MenuDAO.updateItem(id, req.body);
+        if (!updated) {
+            return res.status(404).json({ success: false, message: 'Menu item not found' });
+        }
+        res.json({
+            success: true,
+            message: 'Menu item updated successfully',
+            item: updated
+        });
+    } catch (error) {
+        console.error('Error updating menu item:', error);
+        res.status(500).json({ success: false, message: 'Server error updating menu item' });
+    }
+});
+
+// 17. DELETE Remove Menu Item (Admin Only)
+app.delete('/api/menu-items/:id', requireAdmin, async (req, res) => {
+    try {
+        const id = req.params.id;
+        await MenuDAO.deleteItem(id);
+        res.json({
+            success: true,
+            message: 'Menu item deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting menu item:', error);
+        res.status(500).json({ success: false, message: 'Server error deleting menu item' });
     }
 });
 

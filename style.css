@@ -1074,8 +1074,8 @@ header.sticky{
     }
 }
 
-/* ============ 300px BREAKPOINT (Ultra-compact mobile / small phones) ============ */
-@media (max-width: 300px) {
+/* ============ 350px BREAKPOINT (Compact mobile / 350px phones) ============ */
+@media (max-width: 350px) {
     :root {
         --big-font: 1.5rem;
         --h2-font: 1.25rem;

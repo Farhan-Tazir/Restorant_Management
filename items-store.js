@@ -203,6 +203,30 @@ function resetDefaultItems() {
     return DEFAULT_ITEMS;
 }
 
+// Fetch menu items from backend API with localStorage synchronization
+async function fetchMenuItems() {
+    try {
+        const res = await fetch('/api/menu-items');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && Array.isArray(data.items)) {
+                saveItems(data.items);
+                return data.items;
+            }
+        }
+    } catch (e) {
+        console.warn('[HotalStore] Network error fetching menu items, using local cache:', e);
+    }
+    return getItems();
+}
+
+// Background sync on store initialization
+if (typeof window !== 'undefined') {
+    setTimeout(() => {
+        fetchMenuItems().catch(() => {});
+    }, 100);
+}
+
 // --- USERS & AUTHENTICATION STORE ---
 function getUsers() {
     try {
@@ -525,6 +549,7 @@ function getLatestActiveOrder(userId) {
 window.HotalStore = {
     escapeHtml,
     getItems,
+    fetchMenuItems,
     saveItems,
     addItem,
     updateItem,

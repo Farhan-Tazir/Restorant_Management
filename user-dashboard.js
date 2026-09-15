@@ -123,6 +123,10 @@ function switchTab(tabId) {
             pane.classList.remove('active');
         }
     });
+
+    if (tabId === 'favorites') {
+        initFavoritesGrid();
+    }
 }
 
 // User Profile Management
@@ -375,29 +379,49 @@ async function initOrdersData() {
 // Populate Favorite Dishes Grid
 async function initFavoritesGrid() {
     const container = document.querySelector('#favorites-container');
+    const favStat = document.querySelector('#stat-fav-items');
     if (!container) return;
 
-    let items = [];
-    if (window.HotalStore && typeof window.HotalStore.getItems === 'function') {
-        items = window.HotalStore.getItems();
+    let favorites = [];
+    try {
+        const res = await fetch(`${API_BASE}/user/favorites`, {
+            headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : {}
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && Array.isArray(data.favorites)) {
+                favorites = data.favorites;
+            }
+        }
+    } catch (e) {
+        console.warn('[UserDashboard] Could not fetch favorites from server:', e);
     }
 
-    if (!items || items.length === 0) {
-        items = [
-            { id: 'item-1', name: 'Burger', price: 12.00, description: 'Juicy grilled beef patty with fresh lettuce, tomato, cheese and signature sauce.', image: 'images/burger-removebg-preview.png' },
-            { id: 'item-2', name: 'Large Pizza', price: 18.50, description: 'Cheesy pizza topped with fresh pepperoni, veggies, and classic marinara sauce.', image: 'images/pizza-removebg-preview.png' },
-            { id: 'item-3', name: 'Sekh Kabab', price: 14.00, description: 'Tender charcoal-grilled spiced meat skewers served with mint chutney.', image: 'images/sekh_kabak-removebg-preview.png' },
-            { id: 'item-4', name: 'Shawarma', price: 9.99, description: 'Flavorful wrapped spiced chicken with garlic sauce, veggies, and pickles.', image: 'images/shawarma-removebg-preview.png' }
-        ];
+    if (favStat) favStat.textContent = favorites.length;
+
+    if (favorites.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; color: var(--second-color); padding: 40px; background: #161616; border-radius: 12px; border: 1px dashed var(--other-color);">
+                <i class='bx bx-heart' style="font-size: 3rem; color: var(--second-color); margin-bottom: 10px; display: block;"></i>
+                <h3 style="color: var(--text-color); margin-bottom: 8px;">No Favorites Yet</h3>
+                <p style="margin-bottom: 20px;">You haven't added any favorite dishes yet. Browse our menu to add items you love!</p>
+                <a href="index.html#dishes" class="action-btn-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; text-decoration: none; border-radius: 8px;">
+                    <i class='bx bx-restaurant'></i> Explore Dishes
+                </a>
+            </div>
+        `;
+        return;
     }
 
-    container.innerHTML = items.map(item => `
-        <div class="item-card" data-id="${escapeHtml(item.id)}">
+    container.innerHTML = favorites.map(item => {
+        const itemId = String(item.id || item.menu_item_id);
+        return `
+        <div class="item-card" data-id="${escapeHtml(itemId)}" id="fav-card-${escapeHtml(itemId)}">
             <div class="item-card-header">
                 <span class="badge-category">${escapeHtml(item.category || 'Special')}</span>
-                <span class="status-badge ${item.isAvailable !== false ? 'available' : 'unavailable'}">
-                    <i class='bx ${item.isAvailable !== false ? 'bx-check' : 'bx-x'}'></i>
-                    ${item.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
+                <span class="status-badge ${item.isAvailable !== false && item.is_available !== 0 ? 'available' : 'unavailable'}">
+                    <i class='bx ${item.isAvailable !== false && item.is_available !== 0 ? 'bx-check' : 'bx-x'}'></i>
+                    ${item.isAvailable !== false && item.is_available !== 0 ? 'In Stock' : 'Out of Stock'}
                 </span>
             </div>
 
@@ -413,7 +437,7 @@ async function initFavoritesGrid() {
             <div class="item-bottom">
                 <div class="item-price">$${parseFloat(item.price || 0).toFixed(2)}</div>
                 <div class="item-actions">
-                    <button class="icon-btn fav-btn liked" onclick="toggleFavorite(this)" title="Toggle Favorite">
+                    <button class="icon-btn fav-btn liked" onclick="toggleFavorite(this, '${escapeHtml(itemId)}')" title="Remove from Favorites">
                         <i class='bx bxs-heart' style="color: #e74c3c;"></i>
                     </button>
                     <a href="order-form.html" class="btn-order-pill">
@@ -422,10 +446,8 @@ async function initFavoritesGrid() {
                 </div>
             </div>
         </div>
-    `).join('');
-
-    const favStat = document.querySelector('#stat-fav-items');
-    if (favStat) favStat.textContent = items.length;
+        `;
+    }).join('');
 }
 
 // Live Order Tracker Progress Stepper Logic
@@ -542,25 +564,79 @@ function updateTrackerProgress(step) {
     }
 }
 
-// Re-order Action
+// Re-order Action: Load order items into checkout session and navigate to order form
 window.reorderItems = function(orderId) {
-    showToast(`Order #${orderId} items loaded into checkout! Redirecting...`);
+    let orders = [];
+    if (window.HotalStore && typeof window.HotalStore.getOrders === 'function') {
+        orders = window.HotalStore.getOrders();
+    }
+    const order = orders.find(o => String(o.id) === String(orderId) || String(o.order_number) === String(orderId));
+    if (order && Array.isArray(order.items) && order.items.length > 0) {
+        sessionStorage.setItem('hotal_reorder_items', JSON.stringify(order.items));
+        showToast(`Order #${orderId} items loaded into checkout! Redirecting...`, 'success');
+    } else {
+        showToast(`Redirecting to order form...`, 'info');
+    }
     setTimeout(() => {
         window.location.href = 'order-form.html';
-    }, 1000);
+    }, 800);
 };
 
-// Favorite Heart Toggle
-window.toggleFavorite = function(btn) {
+// Favorite Heart Toggle (with server API persistence)
+window.toggleFavorite = async function(btn, itemId) {
     const icon = btn.querySelector('i');
-    if (icon.classList.contains('bxs-heart')) {
-        icon.className = 'bx bx-heart';
+    const isLiked = icon ? icon.classList.contains('bxs-heart') : btn.classList.contains('liked');
+
+    if (isLiked) {
+        if (icon) {
+            icon.className = 'bx bx-heart';
+            icon.style.color = '';
+        }
+        btn.classList.remove('liked');
         btn.style.color = 'var(--second-color)';
         showToast('Removed from favorites');
+
+        if (itemId) {
+            try {
+                await fetch(`${API_BASE}/user/favorites/${encodeURIComponent(itemId)}`, {
+                    method: 'DELETE',
+                    headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : {}
+                });
+            } catch (err) {
+                console.warn('[UserDashboard] Server error removing favorite:', err);
+            }
+            // Remove card from dashboard favorites grid if currently in favorites tab
+            const card = document.getElementById(`fav-card-${itemId}`);
+            if (card) {
+                card.remove();
+                const favStat = document.querySelector('#stat-fav-items');
+                const remaining = document.querySelectorAll('#favorites-container .item-card').length;
+                if (favStat) favStat.textContent = remaining;
+                if (remaining === 0) {
+                    initFavoritesGrid();
+                }
+            }
+        }
     } else {
-        icon.className = 'bx bxs-heart';
+        if (icon) {
+            icon.className = 'bx bxs-heart';
+            icon.style.color = '#e74c3c';
+        }
+        btn.classList.add('liked');
         btn.style.color = '#e74c3c';
         showToast('Added to favorites!');
+
+        if (itemId) {
+            try {
+                await fetch(`${API_BASE}/user/favorites`, {
+                    method: 'POST',
+                    headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : {},
+                    body: JSON.stringify({ menu_item_id: itemId })
+                });
+            } catch (err) {
+                console.warn('[UserDashboard] Server error adding favorite:', err);
+            }
+        }
     }
 };
 

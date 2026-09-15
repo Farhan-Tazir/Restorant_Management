@@ -36,7 +36,9 @@ sr.reveal('.row-btn,.shop-content',{delay:300});
 
 sr.reveal('.review-content,.contact',{delay:300});
 
-// Dynamic rendering of shop items managed via Admin Dashboard
+// Dynamic rendering of shop items managed via Admin Dashboard & persistent user favorites
+let userFavoriteIds = new Set();
+
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -46,6 +48,72 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+
+async function fetchUserFavorites() {
+    if (!window.HotalStore || !window.HotalStore.isLoggedIn()) {
+        userFavoriteIds.clear();
+        return;
+    }
+    try {
+        const res = await fetch('/api/user/favorites', {
+            headers: window.HotalStore.getAuthHeaders()
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && Array.isArray(data.favorites)) {
+                userFavoriteIds = new Set(data.favorites.map(f => String(f.id || f.menu_item_id)));
+            }
+        }
+    } catch (e) {
+        console.warn('Could not fetch user favorites:', e);
+    }
+}
+
+window.handleFavoriteToggle = async function(btn, itemId) {
+    if (!window.HotalStore || !window.HotalStore.isLoggedIn()) {
+        window.location.href = 'login.html?redirect=index.html';
+        return;
+    }
+
+    const strId = String(itemId);
+    const isLiked = btn.classList.contains('liked') || userFavoriteIds.has(strId);
+    const icon = btn.querySelector('i');
+
+    if (isLiked) {
+        btn.classList.remove('liked');
+        if (icon) {
+            icon.className = 'bx bx-heart';
+            icon.style.color = '';
+        }
+        userFavoriteIds.delete(strId);
+
+        try {
+            await fetch(`/api/user/favorites/${encodeURIComponent(strId)}`, {
+                method: 'DELETE',
+                headers: window.HotalStore.getAuthHeaders()
+            });
+        } catch (e) {
+            console.warn('Failed to remove favorite from server:', e);
+        }
+    } else {
+        btn.classList.add('liked');
+        if (icon) {
+            icon.className = 'bx bxs-heart';
+            icon.style.color = '#e74c3c';
+        }
+        userFavoriteIds.add(strId);
+
+        try {
+            await fetch('/api/user/favorites', {
+                method: 'POST',
+                headers: window.HotalStore.getAuthHeaders(),
+                body: JSON.stringify({ menu_item_id: strId })
+            });
+        } catch (e) {
+            console.warn('Failed to save favorite to server:', e);
+        }
+    }
+};
 
 function renderShopItems() {
     const shopContent = document.querySelector('.shop-content');
@@ -60,7 +128,9 @@ function renderShopItems() {
 
     const esc = window.HotalStore.escapeHtml || escapeHtml;
 
-    shopContent.innerHTML = items.map(item => `
+    shopContent.innerHTML = items.map(item => {
+        const isFav = userFavoriteIds.has(String(item.id));
+        return `
         <div class="item-card" data-id="${esc(item.id)}">
             <div class="item-card-header">
                 <span class="badge-category">${esc(item.category || 'Special')}</span>
@@ -82,8 +152,8 @@ function renderShopItems() {
             <div class="item-bottom">
                 <div class="item-price">$${parseFloat(item.price || 0).toFixed(2)}</div>
                 <div class="item-actions">
-                    <button class="icon-btn fav-btn" onclick="this.classList.toggle('liked')" title="Add to Favorites">
-                        <i class='bx bx-heart'></i>
+                    <button class="icon-btn fav-btn ${isFav ? 'liked' : ''}" onclick="handleFavoriteToggle(this, '${esc(item.id)}')" title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}">
+                        <i class='bx ${isFav ? 'bxs-heart' : 'bx-heart'}' ${isFav ? 'style="color: #e74c3c;"' : ''}></i>
                     </button>
                     <a href="order-form.html" class="btn-order-pill">
                         <i class='bx bx-cart-alt'></i> Order Now
@@ -91,11 +161,23 @@ function renderShopItems() {
                 </div>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     renderShopItems();
+
+    // Sync menu items & user favorites from backend
+    if (window.HotalStore) {
+        if (typeof window.HotalStore.fetchMenuItems === 'function') {
+            window.HotalStore.fetchMenuItems().then(() => renderShopItems()).catch(() => {});
+        }
+        if (window.HotalStore.isLoggedIn()) {
+            await fetchUserFavorites();
+            renderShopItems();
+        }
+    }
 
     // Check admin visibility in navbar
     const adminLink = document.getElementById('nav-admin-link');

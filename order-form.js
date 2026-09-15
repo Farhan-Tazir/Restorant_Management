@@ -84,7 +84,63 @@ function renderOrderFormMenu() {
     </label>`).join('');
 }
 
+// Load previously reordered items passed from user dashboard
+function checkAndLoadReorder() {
+  try {
+    const raw = sessionStorage.getItem('hotal_reorder_items');
+    if (!raw) return;
+    const reorderItems = JSON.parse(raw);
+    sessionStorage.removeItem('hotal_reorder_items');
+
+    if (Array.isArray(reorderItems) && reorderItems.length > 0) {
+      let matchedCount = 0;
+      reorderItems.forEach(reItem => {
+        const itemName = (reItem.item_name || reItem.name || '').toLowerCase();
+        const itemId = String(reItem.menuItemId || reItem.id || '');
+
+        const target = menu.find(m => 
+          (itemId && String(m.id) === itemId) || 
+          (itemName && m.name.toLowerCase() === itemName)
+        );
+
+        if (target) {
+          const chk = document.querySelector(`.item-checkbox[data-id="${target.id}"]`);
+          const qty = document.querySelector(`[data-quantity-for="${target.id}"]`);
+          const card = document.querySelector(`#card-${target.id}`);
+          if (chk && qty) {
+            chk.checked = true;
+            qty.disabled = false;
+            qty.value = reItem.quantity || 1;
+            if (card) card.classList.add('selected');
+            matchedCount++;
+          }
+        }
+      });
+
+      if (matchedCount > 0) {
+        updateTotal();
+        if (message) {
+          message.className = 'form-message success';
+          message.innerHTML = `<i class='bx bx-check-circle'></i> Loaded ${matchedCount} dish(es) from your previous order into checkout!`;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[OrderForm] Could not load reorder items:', err);
+  }
+}
+
 renderOrderFormMenu();
+checkAndLoadReorder();
+
+// Fetch latest menu items from backend API
+if (window.HotalStore && typeof window.HotalStore.fetchMenuItems === 'function') {
+  window.HotalStore.fetchMenuItems().then(() => {
+    renderOrderFormMenu();
+    updateTotal();
+    checkAndLoadReorder();
+  }).catch(() => {});
+}
 
 function updateTotal() {
   let subtotal = 0;
@@ -211,28 +267,46 @@ if (form) {
     };
 
     try {
-      // Save locally in HotalStore for instant cross-tab live tracking
-      const createdLocalOrder = window.HotalStore.addOrder(orderPayload);
+      let finalOrder = null;
 
-      // Attempt API backend sync with matching order_number ID
       try {
-        await fetch('/api/orders', {
+        const response = await fetch('/api/orders', {
           method: 'POST',
-          headers: window.HotalStore.getAuthHeaders(),
-          body: JSON.stringify({
-            ...orderPayload,
-            order_number: createdLocalOrder.order_number,
-            id: createdLocalOrder.id
-          }),
+          headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload),
         });
-      } catch (apiErr) {
-        console.log('[OrderForm] Offline submit - saved locally');
+
+        if (response.status === 401) {
+          message.className = 'form-message error';
+          message.textContent = 'Your session has expired. Please log in again to place your order.';
+          if (button) button.disabled = false;
+          setTimeout(() => {
+            window.location.replace('login.html?redirect=order-form.html');
+          }, 1500);
+          return;
+        }
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+          message.className = 'form-message error';
+          message.textContent = data.message || `Failed to submit order (status ${response.status}). Please check your order and try again.`;
+          if (button) button.disabled = false;
+          return;
+        }
+
+        finalOrder = data.order;
+      } catch (networkErr) {
+        console.warn('[OrderForm] Network error connecting to backend API, falling back to local store:', networkErr);
       }
+
+      // Save locally so that live tracker and offline viewing work seamlessly
+      const savedOrder = finalOrder ? window.HotalStore.addOrder(finalOrder) : window.HotalStore.addOrder(orderPayload);
 
       form.reset();
       updateTotal();
       message.className = 'form-message success';
-      message.innerHTML = `<i class='bx bx-check-circle'></i> Order <strong>${createdLocalOrder.order_number}</strong> placed! Redirecting to Live Tracker...`;
+      message.innerHTML = `<i class='bx bx-check-circle'></i> Order <strong>#${escapeHtml(savedOrder.order_number || savedOrder.id)}</strong> placed successfully! Redirecting to Live Tracker...`;
 
       setTimeout(() => {
         window.location.href = 'user-dashboard.html';
@@ -240,7 +314,7 @@ if (form) {
 
     } catch (error) {
       message.className = 'form-message error';
-      message.textContent = 'Failed to submit order. Please try again.';
+      message.textContent = error.message || 'Failed to submit order. Please try again.';
       if (button) button.disabled = false;
     }
   });

@@ -3,8 +3,23 @@
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '031035farhan@gmail.com').toLowerCase().trim();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'farhan1709';
+// Load environment file if present (supported natively in Node.js 20+)
+try {
+    if (typeof process.loadEnvFile === 'function') {
+        process.loadEnvFile();
+    }
+} catch (_) {}
+
+// Security Hardening: Enforce required environment variables (no hardcoded fallback credentials)
+if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+    throw new Error(
+        'Startup Error: Required environment variables ADMIN_EMAIL and ADMIN_PASSWORD are not set. ' +
+        'Please configure them in your .env file or deployment environment variables.'
+    );
+}
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL.toLowerCase().trim();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // In-Memory Fallback State (Simulates SQL database when DB server is not active)
 const inMemoryDatabase = {
@@ -34,6 +49,63 @@ const inMemoryDatabase = {
             reward_points: 9999,
             loyalty_badge: 'Super Administrator',
             created_at: new Date().toISOString()
+        }
+    ],
+    menu_categories: [
+        { id: 1, name: 'Burgers', display_order: 1 },
+        { id: 2, name: 'Pizza', display_order: 2 },
+        { id: 3, name: 'Grill', display_order: 3 },
+        { id: 4, name: 'Fast Food', display_order: 4 },
+        { id: 5, name: 'Drinks', display_order: 5 }
+    ],
+    menu_items: [
+        {
+            id: 1,
+            category_id: 1,
+            category: 'Fast Food',
+            name: 'Burger',
+            description: 'Juicy grilled beef patty with fresh lettuce, tomato, cheese and signature sauce.',
+            price: 12.00,
+            image: 'images/burger-removebg-preview.png',
+            isAvailable: true,
+            isFeatured: true,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 2,
+            category_id: 2,
+            category: 'Pizza',
+            name: 'Large Pizza',
+            description: 'Cheesy pizza topped with fresh pepperoni, veggies, and classic marinara sauce.',
+            price: 18.50,
+            image: 'images/pizza-removebg-preview.png',
+            isAvailable: true,
+            isFeatured: true,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 3,
+            category_id: 3,
+            category: 'Grill',
+            name: 'Sekh Kabab',
+            description: 'Tender charcoal-grilled spiced meat skewers served with mint chutney.',
+            price: 14.00,
+            image: 'images/sekh_kabak-removebg-preview.png',
+            isAvailable: true,
+            isFeatured: true,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 4,
+            category_id: 4,
+            category: 'Fast Food',
+            name: 'Shawarma',
+            description: 'Flavorful wrapped spiced chicken with garlic sauce, veggies, and pickles.',
+            price: 9.99,
+            image: 'images/shawarma-removebg-preview.png',
+            isAvailable: true,
+            isFeatured: true,
+            createdAt: new Date().toISOString()
         }
     ],
     favorites: [
@@ -93,25 +165,35 @@ let isConnected = false;
 
 // Initialize Database Connection Pool
 async function initDatabase() {
-    if (!process.env.DB_HOST && !process.env.DATABASE_URL) {
+    const rawUrl = process.env.DATABASE_URL ? String(process.env.DATABASE_URL).trim() : '';
+    const hasValidUrl = rawUrl.startsWith('mysql://') || rawUrl.startsWith('mysql2://');
+    const hasHost = Boolean(process.env.DB_HOST && String(process.env.DB_HOST).trim());
+
+    if (!hasValidUrl && !hasHost) {
         isConnected = false;
-        console.log('[SQL Database] Operating in standalone SQL API fallback mode (no DB_HOST configured).');
+        console.log('[SQL Database] No valid MySQL DATABASE_URL or DB_HOST configured. Operating in standalone in-memory fallback mode.');
         return;
     }
 
-    const dbConfig = {
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || '',
-        database: process.env.DB_NAME || 'hotel_db',
-        waitForConnections: true,
-        connectionLimit: 10,
-        queueLimit: 0,
-        connectTimeout: 2000
-    };
-
     try {
-        dbPool = mysql.createPool(dbConfig);
+        if (hasValidUrl) {
+            console.log('[SQL Database] Attempting connection to MySQL using DATABASE_URL configuration.');
+            dbPool = mysql.createPool(rawUrl);
+        } else {
+            console.log('[SQL Database] Attempting connection to MySQL using discrete DB_* environment variables.');
+            const dbConfig = {
+                host: process.env.DB_HOST,
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_NAME || 'hotel_db',
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                connectTimeout: 3000
+            };
+            dbPool = mysql.createPool(dbConfig);
+        }
+
         // Test connection
         const conn = await dbPool.getConnection();
         await conn.ping();
@@ -120,7 +202,8 @@ async function initDatabase() {
         console.log('[SQL Database] Connected successfully to MySQL database.');
     } catch (err) {
         isConnected = false;
-        console.log('[SQL Database] Operating in standalone SQL API fallback mode (MySQL service unattached).');
+        console.error('[SQL Database] Connection attempt failed:', err.message);
+        console.log('[SQL Database] Operating in standalone in-memory fallback mode due to database connection error.');
     }
 }
 
@@ -401,29 +484,289 @@ const UserDAO = {
     },
 
     async getUserFavorites(userId) {
+        const uid = Number(userId) || userId;
         if (isConnected && dbPool) {
             try {
                 const [rows] = await dbPool.query(
-                    `SELECT m.* FROM menu_items m 
+                    `SELECT m.id, m.category_id, c.name AS category, m.name, m.description, 
+                            m.price, m.image_url AS image, m.is_available AS isAvailable, m.created_at AS createdAt
+                     FROM menu_items m 
+                     LEFT JOIN menu_categories c ON m.category_id = c.id
                      JOIN user_favorites f ON m.id = f.menu_item_id 
-                     WHERE f.user_id = ?`,
-                    [userId]
+                     WHERE f.user_id = ?
+                     ORDER BY f.id DESC`,
+                    [uid]
                 );
-                return rows;
+                return rows.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    category: r.category || 'Special',
+                    price: parseFloat(r.price || 0),
+                    description: r.description || '',
+                    image: r.image || 'images/fast-food.png',
+                    isAvailable: Boolean(r.isAvailable),
+                    isFeatured: true
+                }));
             } catch (e) {
-                console.error('SQL query error:', e);
+                console.error('SQL getUserFavorites error:', e);
             }
         }
-        return [
-            { id: 1, name: 'Burger', price: 12.00, description: 'Juicy grilled beef patty with fresh lettuce, tomato, cheese and signature sauce.', image: 'images/burger-removebg-preview.png' },
-            { id: 2, name: 'Large Pizza', price: 18.50, description: 'Cheesy pizza topped with fresh pepperoni, veggies, and classic marinara sauce.', image: 'images/pizza-removebg-preview.png' },
-            { id: 3, name: 'Sekh Kabab', price: 14.00, description: 'Tender charcoal-grilled spiced meat skewers served with mint chutney.', image: 'images/sekh_kabak-removebg-preview.png' },
-            { id: 4, name: 'Shawarma', price: 9.99, description: 'Flavorful wrapped spiced chicken with garlic sauce, veggies, and pickles.', image: 'images/shawarma-removebg-preview.png' }
-        ];
+        // In-memory fallback
+        const userFavEntries = inMemoryDatabase.favorites.filter(
+            f => f.user_id === uid || String(f.user_id) === String(uid)
+        );
+        const userFavIds = userFavEntries.map(f => f.menu_item_id);
+        return inMemoryDatabase.menu_items.filter(
+            m => userFavIds.includes(m.id) || userFavIds.includes(Number(m.id)) || userFavIds.includes(String(m.id))
+        ).map(m => ({ ...m }));
+    },
+
+    async addFavorite(userId, menuItemId) {
+        const uid = Number(userId) || userId;
+        const mid = Number(menuItemId) || menuItemId;
+        if (isConnected && dbPool) {
+            try {
+                await dbPool.query(
+                    `INSERT IGNORE INTO user_favorites (user_id, menu_item_id) VALUES (?, ?)`,
+                    [uid, mid]
+                );
+                return { user_id: uid, menu_item_id: mid };
+            } catch (e) {
+                console.error('SQL addFavorite error:', e);
+            }
+        }
+        const exists = inMemoryDatabase.favorites.some(
+            f => (f.user_id === uid || String(f.user_id) === String(uid)) &&
+                 (f.menu_item_id === mid || String(f.menu_item_id) === String(mid))
+        );
+        if (!exists) {
+            inMemoryDatabase.favorites.push({
+                id: inMemoryDatabase.favorites.length + 1,
+                user_id: uid,
+                menu_item_id: mid
+            });
+        }
+        return { user_id: uid, menu_item_id: mid };
+    },
+
+    async removeFavorite(userId, menuItemId) {
+        const uid = Number(userId) || userId;
+        const mid = Number(menuItemId) || menuItemId;
+        if (isConnected && dbPool) {
+            try {
+                await dbPool.query(
+                    `DELETE FROM user_favorites WHERE user_id = ? AND menu_item_id = ?`,
+                    [uid, mid]
+                );
+                return true;
+            } catch (e) {
+                console.error('SQL removeFavorite error:', e);
+            }
+        }
+        inMemoryDatabase.favorites = inMemoryDatabase.favorites.filter(
+            f => !((f.user_id === uid || String(f.user_id) === String(uid)) &&
+                   (f.menu_item_id === mid || String(f.menu_item_id) === String(mid)))
+        );
+        return true;
+    }
+};
+
+// Menu Item Operations (Admin Management & Public Menu Access)
+const MenuDAO = {
+    async getAllItems() {
+        if (isConnected && dbPool) {
+            try {
+                const [rows] = await dbPool.query(
+                    `SELECT m.id, m.category_id, c.name AS category, m.name, m.description, 
+                            m.price, m.image_url AS image, m.is_available AS isAvailable, m.created_at AS createdAt
+                     FROM menu_items m
+                     LEFT JOIN menu_categories c ON m.category_id = c.id
+                     ORDER BY m.id ASC`
+                );
+                return rows.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    category: r.category || 'Special',
+                    price: parseFloat(r.price || 0),
+                    description: r.description || '',
+                    image: r.image || 'images/fast-food.png',
+                    isAvailable: Boolean(r.isAvailable),
+                    isFeatured: true,
+                    createdAt: r.createdAt
+                }));
+            } catch (e) {
+                console.error('SQL getAllItems error:', e);
+            }
+        }
+        return inMemoryDatabase.menu_items.map(m => ({ ...m }));
+    },
+
+    async getItemById(id) {
+        const numId = Number(id) || id;
+        if (isConnected && dbPool) {
+            try {
+                const [rows] = await dbPool.query(
+                    `SELECT m.id, m.category_id, c.name AS category, m.name, m.description, 
+                            m.price, m.image_url AS image, m.is_available AS isAvailable, m.created_at AS createdAt
+                     FROM menu_items m
+                     LEFT JOIN menu_categories c ON m.category_id = c.id
+                     WHERE m.id = ?`,
+                    [numId]
+                );
+                if (rows.length > 0) {
+                    const r = rows[0];
+                    return {
+                        id: r.id,
+                        name: r.name,
+                        category: r.category || 'Special',
+                        price: parseFloat(r.price || 0),
+                        description: r.description || '',
+                        image: r.image || 'images/fast-food.png',
+                        isAvailable: Boolean(r.isAvailable),
+                        isFeatured: true,
+                        createdAt: r.createdAt
+                    };
+                }
+            } catch (e) {
+                console.error('SQL getItemById error:', e);
+            }
+        }
+        return inMemoryDatabase.menu_items.find(m => m.id === id || m.id === numId || String(m.id) === String(id)) || null;
+    },
+
+    async addItem(itemData) {
+        const name = String(itemData.name || '').trim();
+        const category = String(itemData.category || 'Fast Food').trim();
+        const price = parseFloat(itemData.price || 0);
+        const description = String(itemData.description || '').trim();
+        const image = String(itemData.image || itemData.image_url || 'images/fast-food.png').trim();
+        const isAvailable = itemData.isAvailable !== false && itemData.is_available !== false;
+        const isFeatured = itemData.isFeatured !== undefined ? Boolean(itemData.isFeatured) : true;
+
+        if (isConnected && dbPool) {
+            try {
+                let categoryId = 1;
+                const [catRows] = await dbPool.query('SELECT id FROM menu_categories WHERE name = ? LIMIT 1', [category]);
+                if (catRows.length > 0) {
+                    categoryId = catRows[0].id;
+                } else {
+                    const [catInsert] = await dbPool.query('INSERT INTO menu_categories (name) VALUES (?)', [category]);
+                    categoryId = catInsert.insertId;
+                }
+
+                const [res] = await dbPool.query(
+                    `INSERT INTO menu_items (category_id, name, description, price, image_url, is_available)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [categoryId, name, description, price, image, isAvailable ? 1 : 0]
+                );
+                return await this.getItemById(res.insertId);
+            } catch (e) {
+                console.error('SQL addItem error:', e);
+            }
+        }
+
+        const nextId = inMemoryDatabase.menu_items.length > 0 
+            ? Math.max(...inMemoryDatabase.menu_items.map(m => typeof m.id === 'number' ? m.id : parseInt(String(m.id).replace(/\D/g, '') || '0', 10))) + 1
+            : 1;
+
+        const newItem = {
+            id: nextId,
+            category_id: 1,
+            category,
+            name,
+            description,
+            price,
+            image,
+            isAvailable,
+            isFeatured,
+            createdAt: new Date().toISOString()
+        };
+        inMemoryDatabase.menu_items.push(newItem);
+        return newItem;
+    },
+
+    async updateItem(id, itemData) {
+        const numId = Number(id) || id;
+        const existing = await this.getItemById(id);
+        if (!existing) return null;
+
+        const name = itemData.name !== undefined ? String(itemData.name).trim() : existing.name;
+        const category = itemData.category !== undefined ? String(itemData.category).trim() : existing.category;
+        const price = itemData.price !== undefined ? parseFloat(itemData.price || 0) : existing.price;
+        const description = itemData.description !== undefined ? String(itemData.description).trim() : existing.description;
+        const image = itemData.image !== undefined ? String(itemData.image).trim() : (itemData.image_url !== undefined ? String(itemData.image_url).trim() : existing.image);
+        const isAvailable = itemData.isAvailable !== undefined ? Boolean(itemData.isAvailable) : (itemData.is_available !== undefined ? Boolean(itemData.is_available) : existing.isAvailable);
+        const isFeatured = itemData.isFeatured !== undefined ? Boolean(itemData.isFeatured) : existing.isFeatured;
+
+        if (isConnected && dbPool) {
+            try {
+                let categoryId = null;
+                if (itemData.category) {
+                    const [catRows] = await dbPool.query('SELECT id FROM menu_categories WHERE name = ? LIMIT 1', [category]);
+                    if (catRows.length > 0) {
+                        categoryId = catRows[0].id;
+                    } else {
+                        const [catInsert] = await dbPool.query('INSERT INTO menu_categories (name) VALUES (?)', [category]);
+                        categoryId = catInsert.insertId;
+                    }
+                }
+
+                if (categoryId) {
+                    await dbPool.query(
+                        `UPDATE menu_items 
+                         SET name = ?, category_id = ?, description = ?, price = ?, image_url = ?, is_available = ?, updated_at = NOW()
+                         WHERE id = ?`,
+                        [name, categoryId, description, price, image, isAvailable ? 1 : 0, numId]
+                    );
+                } else {
+                    await dbPool.query(
+                        `UPDATE menu_items 
+                         SET name = ?, description = ?, price = ?, image_url = ?, is_available = ?, updated_at = NOW()
+                         WHERE id = ?`,
+                        [name, description, price, image, isAvailable ? 1 : 0, numId]
+                    );
+                }
+                return await this.getItemById(numId);
+            } catch (e) {
+                console.error('SQL updateItem error:', e);
+            }
+        }
+
+        const inMemItem = inMemoryDatabase.menu_items.find(m => m.id === id || m.id === numId || String(m.id) === String(id));
+        if (inMemItem) {
+            inMemItem.name = name;
+            inMemItem.category = category;
+            inMemItem.price = price;
+            inMemItem.description = description;
+            inMemItem.image = image;
+            inMemItem.isAvailable = isAvailable;
+            inMemItem.isFeatured = isFeatured;
+            inMemItem.updatedAt = new Date().toISOString();
+            return { ...inMemItem };
+        }
+        return null;
+    },
+
+    async deleteItem(id) {
+        const numId = Number(id) || id;
+        if (isConnected && dbPool) {
+            try {
+                await dbPool.query('DELETE FROM menu_items WHERE id = ?', [numId]);
+                return true;
+            } catch (e) {
+                console.error('SQL deleteItem error:', e);
+            }
+        }
+        const initialLen = inMemoryDatabase.menu_items.length;
+        inMemoryDatabase.menu_items = inMemoryDatabase.menu_items.filter(
+            m => !(m.id === id || m.id === numId || String(m.id) === String(id))
+        );
+        return inMemoryDatabase.menu_items.length < initialLen;
     }
 };
 
 module.exports = {
     initDatabase,
-    UserDAO
+    UserDAO,
+    MenuDAO
 };

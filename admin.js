@@ -372,7 +372,19 @@ document.addEventListener('DOMContentLoaded', () => {
         openModal(true);
     };
 
-    window.handleToggleStock = function(id) {
+    window.handleToggleStock = async function(id) {
+        const items = window.HotalStore ? window.HotalStore.getItems() : [];
+        const item = items.find(i => String(i.id) === String(id));
+        const newAvail = item ? !item.isAvailable : true;
+        try {
+            await fetch(`/api/menu-items/${encodeURIComponent(id)}`, {
+                method: 'PUT',
+                headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_available: newAvail, isAvailable: newAvail })
+            });
+        } catch (err) {
+            console.warn('[Admin] Failed to update availability on server, updating locally:', err);
+        }
         const updated = window.HotalStore.toggleItemAvailability(id);
         if (updated) {
             showToast(`"${updated.name}" is now ${updated.isAvailable ? 'In Stock' : 'Out of Stock'}`, 'success');
@@ -397,10 +409,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', () => {
+        confirmDeleteBtn.addEventListener('click', async () => {
             if (itemToDeleteId) {
+                try {
+                    const res = await fetch(`/api/menu-items/${encodeURIComponent(itemToDeleteId)}`, {
+                        method: 'DELETE',
+                        headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' }
+                    });
+                    if (res.ok) {
+                        showToast('Item deleted successfully from database.', 'success');
+                    } else {
+                        const data = await res.json().catch(() => ({}));
+                        showToast(data.message || 'Deleted from local menu.', 'info');
+                    }
+                } catch (e) {
+                    showToast('Item deleted locally.', 'info');
+                }
                 window.HotalStore.removeItem(itemToDeleteId);
-                showToast('Item deleted successfully from website.', 'success');
                 if (deleteModal) deleteModal.classList.remove('open');
                 itemToDeleteId = null;
                 renderMenu();
@@ -409,25 +434,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (itemForm) {
-        itemForm.addEventListener('submit', (e) => {
+        itemForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = itemIdInput.value;
             const itemData = {
-                name: itemNameInput.value,
+                name: itemNameInput.value.trim(),
                 category: itemCategorySelect.value,
-                price: itemPriceInput.value,
+                price: parseFloat(itemPriceInput.value) || 0,
                 image: itemImageInput.value || 'images/fast-food.png',
-                description: itemDescriptionInput.value,
+                description: itemDescriptionInput.value.trim(),
                 isAvailable: itemAvailableCheckbox.checked,
                 isFeatured: itemFeaturedCheckbox.checked
             };
 
-            if (id) {
-                window.HotalStore.updateItem(id, itemData);
-                showToast(`Updated "${itemData.name}" successfully!`, 'success');
-            } else {
-                window.HotalStore.addItem(itemData);
-                showToast(`Added "${itemData.name}" to menu!`, 'success');
+            try {
+                if (id) {
+                    const res = await fetch(`/api/menu-items/${encodeURIComponent(id)}`, {
+                        method: 'PUT',
+                        headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.success) {
+                        window.HotalStore.updateItem(id, data.item || itemData);
+                        showToast(`Updated "${itemData.name}" in database!`, 'success');
+                    } else {
+                        window.HotalStore.updateItem(id, itemData);
+                        showToast(`Updated "${itemData.name}" locally.`, 'info');
+                    }
+                } else {
+                    const res = await fetch('/api/menu-items', {
+                        method: 'POST',
+                        headers: window.HotalStore ? window.HotalStore.getAuthHeaders() : { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemData)
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.success && data.item) {
+                        window.HotalStore.addItem(data.item);
+                        showToast(`Saved "${itemData.name}" to database!`, 'success');
+                    } else {
+                        window.HotalStore.addItem(itemData);
+                        showToast(`Saved "${itemData.name}" locally.`, 'info');
+                    }
+                }
+            } catch (err) {
+                console.warn('[Admin] Server error saving menu item, falling back to local store:', err);
+                if (id) {
+                    window.HotalStore.updateItem(id, itemData);
+                } else {
+                    window.HotalStore.addItem(itemData);
+                }
+                showToast(`Saved "${itemData.name}" locally.`, 'info');
             }
 
             closeModal();
@@ -689,7 +746,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hotal_items_updated', renderMenu);
     window.addEventListener('hotal_orders_updated', renderAdminOrders);
 
-    // Initial render
+    // Initial render with server synchronization
     renderMenu();
+    if (window.HotalStore && typeof window.HotalStore.fetchMenuItems === 'function') {
+        window.HotalStore.fetchMenuItems().then(() => renderMenu()).catch(() => {});
+    }
     renderAdminOrders();
 });
