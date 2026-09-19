@@ -2,85 +2,204 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="description" content="Online restaurant website with interactive ordering, menu management, customer dashboard, and admin panel.">
-    <meta property="og:title" content="Restaurant Management">
-    <meta property="og:description" content="Online restaurant website with interactive ordering, menu management, customer dashboard, and admin panel.">
+    <meta name="theme-color" content="#111111">
+    <title>Restaurant Management - Fresh Fast Food &amp; Authentic Dining</title>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Boxicons CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    
+    <!-- Main Mobile-First Stylesheet -->
     <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://unpkg.com/boxicons@latest/css/boxicons.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <a href="#" class="logo"><i class='bx bx-bowl-hot'></i>Hotel</a>
-        <ul class="navlist">
+
+    <!-- Header Navigation -->
+    <header id="site-header">
+        <a href="#home" class="logo" id="header-logo" aria-label="Hotel Springs Home">
+            <i class='bx bx-bowl-hot'></i>Hotel
+        </a>
+
+        <!-- Navigation Menu -->
+        <ul class="navlist" id="main-nav">
             <li><a href="#home" class="active">Home</a></li>
             <li><a href="#about">About Us</a></li>
             <li><a href="#shop">Our Shop</a></li>
-            <li><a href="#review">Our cutomer</a></li>
+            <li><a href="#review">Reviews</a></li>
             <li><a href="#contact">Contact Us</a></li>
+            <li id="nav-admin-link" style="display: none;">
+                <a href="admin.html" class="nav-admin-btn"><i class='bx bx-shield-quarter'></i> Admin Panel</a>
+            </li>
         </ul>
+
+        <!-- Right Action Icons -->
         <div class="nav-icons">
-            <a href="#shop" title="Search Menu"><i class='bx bx-search' ></i></a>
-            <a href="user-dashboard.html" id="nav-user-icon" title="User Dashboard"><i class='bx bx-user-circle'></i></a>
-            <a href="order-form.html" id="nav-order-icon" title="Order Form"><i class='bx bx-cart' ></i></a>
-            <div class="bx bx-menu" id="menu-icon"></div>
+            <a href="#shop" class="nav-action-btn" title="Search Menu" aria-label="Search Menu">
+                <i class='bx bx-search'></i>
+            </a>
+            <a href="user-dashboard.html" id="nav-user-icon" class="nav-action-btn" title="User Account" aria-label="User Account">
+                <i class='bx bx-user-circle'></i>
+            </a>
+            <a href="order-form.html" id="nav-order-icon" class="nav-action-btn cart-btn" title="Order Online" aria-label="Order Online">
+                <i class='bx bx-cart'></i>
+            </a>
+            <div class="bx bx-menu" id="menu-icon" role="button" aria-label="Toggle navigation menu" tabindex="0"></div>
         </div>
     </header>
-    <section class="home" id="home">
-        <div class="home-text">
-            <h1>Meet, <span>Eat &</span><br>Enjoythe true <br>test</h1>
-            <a href="#shop" class="btn">Explore Menu<i class='bx bxs-right-arrow'></i></a>
-            <a href="order-form.html" class="btn2">Order Now</a>
-        </div>
-        <div class="home-img">
-            <img src="images/fast-food.png" alt="">
-        </div>
-    </section>
-    <!-- cotaniner -->
-     <section class="container">
-        <div class="container-box">
-            <img src="images/c2.png" alt="">
-            <h3>Hotal Springs 555</h3>
-            <a href="#">Get Directions</a>
-        </div>
-        <div class="container-box">
-            <img src="images/c1.png" alt="">
-            <h3>09:00 am - 8:00 pm</h3>
-            <a href="#">Working Hours</a>
-        </div>
-        <div class="container-box">
-            <img src="images/c3.png" alt="">
-            <h3>+92 310 3546086</h3>
-            <a href="#">Call Us Now</a>
-        </div>
-     </section>
-     <!-- section -->
-      <section class="about" id="about">
-        <div class="about-img">
-            <img src="images/burger.webp" alt="">
-        </div>
-        <div class="about-text">
-            <h2>Living well begin <br> with eating well.</h2>
-            <p>Over well begin as a food , the main use of uses of honey are in cooking, baking,
-                desserts,as a spread on baread, as bread, as sn addition to various beverages such as tea, 
-                and as a sweetener in some commercial beverages. <br> <br>Due to its energy density, honey is an imporant food for virtually all hunter-getherer cultures in warm climate,
-                 with the hadza people ranking honey as their favorite food.
-            </p>
-            <a href="#" class="btn">Explore story<i class='bx bxs-right-arrow'></i></a>
-        </div>
-      </section>
-      <!-- our section -->
-       <section class="shop" id="shop">
-        <div class="middle-text">
-            <h4>Our Shop</h4>
-            <h2>Lets Check Popular Products</h2>
+
+    <!-- Main Content Area -->
+    <main>
+        <!-- Hero Section -->
+        <section class="home" id="home">
+            <div class="home-text">
+                <div class="hero-pill-badge">
+                    <i class='bx bxs-flame'></i> Hot &amp; Fresh Fast Food
+                </div>
+                <h1>Meet, <span>Eat &amp;</span><br>Enjoy The True <span>Taste</span></h1>
+                <p>Savor our chef-crafted burgers, stone-baked pizzas, smoky charcoal kababs, and sizzling shawarma wraps — made fresh daily with authentic spices and delivered hot to your door.</p>
+                
+                <div class="home-btn-group">
+                    <a href="order-form.html" class="btn btn-primary">
+                        <i class='bx bx-cart-alt'></i> Order Online
+                    </a>
+                    <a href="#shop" class="btn2">
+                        Explore Menu <i class='bx bx-right-arrow-alt'></i>
+                    </a>
+                </div>
+
+                <div class="hero-features-bar">
+                    <div class="hero-feature-item">
+                        <i class='bx bxs-truck'></i>
+                        <div class="hero-feature-text">
+                            <h5>30 Min Delivery</h5>
+                            <p>Fast &amp; Insulated</p>
+                        </div>
+                    </div>
+                    <div class="hero-feature-item">
+                        <i class='bx bxs-star'></i>
+                        <div class="hero-feature-text">
+                            <h5>4.9 Star Rating</h5>
+                            <p>1,200+ Reviews</p>
+                        </div>
+                    </div>
+                    <div class="hero-feature-item">
+                        <i class='bx bxs-badge-check'></i>
+                        <div class="hero-feature-text">
+                            <h5>100% Halal</h5>
+                            <p>Fresh Ingredients</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="home-img">
+                <div class="home-img-wrapper">
+                    <div class="home-img-glow"></div>
+                    <img src="images/fast-food.png" alt="Featured Hotel Springs Fast Food Dish" onerror="this.src='images/fast-food.png'">
+                    <div class="hero-floating-badge">
+                        <i class='bx bxs-star'></i>
+                        <span>Chef's Choice Special</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Highlights / Quick Information Section -->
+        <section class="container" id="features">
+            <div class="container-box">
+                <div class="container-box-icon">
+                    <img src="images/c2.png" alt="Location Marker" onerror="this.src='images/c2.png'">
+                </div>
+                <h3>Hotel Springs 555</h3>
+                <a href="https://maps.google.com/?q=Swabi+KPK" target="_blank" rel="noopener">
+                    Get Directions <i class='bx bx-right-arrow-alt'></i>
+                </a>
+            </div>
+
+            <div class="container-box">
+                <div class="container-box-icon">
+                    <img src="images/c1.png" alt="Working Hours" onerror="this.src='images/c1.png'">
+                </div>
+                <h3>09:00 AM - 10:00 PM</h3>
+                <a href="#contact">
+                    Working Hours <i class='bx bx-time-five'></i>
+                </a>
+            </div>
+
+            <div class="container-box">
+                <div class="container-box-icon">
+                    <img src="images/c3.png" alt="Telephone Support" onerror="this.src='images/c3.png'">
+                </div>
+                <h3>+92 310 3546086</h3>
+                <a href="tel:+923103546086">
+                    Call Us Now <i class='bx bx-phone-call'></i>
+                </a>
+            </div>
+        </section>
+
+        <!-- About Us Section -->
+        <section class="about" id="about">
+            <div class="about-img">
+                <div class="about-img-frame">
+                    <img src="images/burger.webp" alt="Artisan burger prepared with fresh ingredients" onerror="this.src='images/fast-food.png'">
+                    <div class="about-experience-badge">
+                        <i class='bx bxs-award'></i>
+                        <div>
+                            <h6>Authentic Kitchen</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="about-text">
+                <span class="section-tag"><i class='bx bx-restaurant'></i> Our Culinary Passion</span>
+                <h2>Living Well Begins With <span>Eating Well</span></h2>
+                <p>At Hotel Springs, we blend heritage recipes with gourmet kitchen practices. From charcoal-grilled skewered kababs to freshly tossed pizzas, every dish is prepared with premium farm produce, secret spice marinades, and an uncompromising dedication to flavor.</p>
+                
+                <div class="about-pillars">
+                    <div class="about-pillar-item">
+                        <i class='bx bx-check-circle'></i> Hand-selected 100% fresh meat and organic produce
+                    </div>
+                    <div class="about-pillar-item">
+                        <i class='bx bx-check-circle'></i> Master chefs crafting signature sauces daily
+                    </div>
+                    <div class="about-pillar-item">
+                        <i class='bx bx-check-circle'></i> Sparkling hygienic open kitchen &amp; fast eco-packaging
+                    </div>
+                </div>
+
+                <a href="order-form.html" class="btn btn-primary">
+                    <i class='bx bx-food-menu'></i> Taste The Quality
+                </a>
+            </div>
+        </section>
+
+        <!-- Shop / Popular Products Section -->
+        <section class="shop" id="shop">
+            <div class="middle-text">
+                <span class="section-tag"><i class='bx bxs-dish'></i> Chef's Selection</span>
+                <h2>Lets Check Popular Products</h2>
+                <p>Explore customer favorites prepared hot on demand. Dine in with us or order online for fast home delivery.</p>
+            </div>
+
+            <!-- Category Filter Tabs -->
+            <div class="shop-filter-bar">
+                <button type="button" class="filter-tab active" data-filter="all">All Items</button>
+                <button type="button" class="filter-tab" data-filter="Fast Food">Fast Food</button>
+                <button type="button" class="filter-tab" data-filter="Pizza">Pizza</button>
+                <button type="button" class="filter-tab" data-filter="Grill">BBQ Grill</button>
+            </div>
+
+            <!-- Shop Items Grid (Populated dynamically and with fallback markup) -->
             <div class="shop-content">
-                <!-- Item Card 1: Burger -->
-                <div class="item-card">
+                <!-- Item 1: Burger -->
+                <div class="item-card" data-id="item-1">
                     <div class="item-card-header">
                         <span class="badge-category">Fast Food</span>
                         <span class="status-badge available">
@@ -88,23 +207,27 @@
                         </span>
                     </div>
                     <div class="item-image-wrapper">
-                        <img src="images/burger-removebg-preview.png" alt="Burger">
+                        <img src="images/burger-removebg-preview.png" alt="Burger" onerror="this.src='images/fast-food.png'">
                     </div>
                     <div class="item-details">
                         <h3>Burger</h3>
-                        <p>Juicy flame-grilled patty topped with fresh cheese and crisp lettuce.</p>
+                        <p>Juicy grilled beef patty with fresh lettuce, tomato, cheese and signature sauce.</p>
                     </div>
                     <div class="item-bottom">
                         <div class="item-price">$12.00</div>
                         <div class="item-actions">
-                            <button class="icon-btn fav-btn" onclick="this.classList.toggle('liked')" title="Add to Favorites"><i class='bx bx-heart'></i></button>
-                            <a href="order-form.html" class="btn-order-pill"><i class='bx bx-cart-alt'></i> Order Now</a>
+                            <button class="icon-btn fav-btn" onclick="handleFavoriteToggle(this, 'item-1')" title="Add to Favorites" aria-label="Add Burger to Favorites">
+                                <i class='bx bx-heart'></i>
+                            </button>
+                            <a href="order-form.html" class="btn-order-pill">
+                                <i class='bx bx-cart-alt'></i> Order Now
+                            </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Item Card 2: Large Pizza -->
-                <div class="item-card">
+                <!-- Item 2: Large Pizza -->
+                <div class="item-card" data-id="item-2">
                     <div class="item-card-header">
                         <span class="badge-category">Pizza</span>
                         <span class="status-badge available">
@@ -112,201 +235,272 @@
                         </span>
                     </div>
                     <div class="item-image-wrapper">
-                        <img src="images/pizza-removebg-preview.png" alt="Large Pizza">
+                        <img src="images/pizza-removebg-preview.png" alt="Large Pizza" onerror="this.src='images/fast-food.png'">
                     </div>
                     <div class="item-details">
                         <h3>Large Pizza</h3>
-                        <p>Stone-baked artisanal pizza with melted mozzarella and fresh toppings.</p>
+                        <p>Cheesy pizza topped with fresh pepperoni, veggies, and classic marinara sauce.</p>
                     </div>
                     <div class="item-bottom">
                         <div class="item-price">$18.50</div>
                         <div class="item-actions">
-                            <button class="icon-btn fav-btn" onclick="this.classList.toggle('liked')" title="Add to Favorites"><i class='bx bx-heart'></i></button>
-                            <a href="order-form.html" class="btn-order-pill"><i class='bx bx-cart-alt'></i> Order Now</a>
+                            <button class="icon-btn fav-btn" onclick="handleFavoriteToggle(this, 'item-2')" title="Add to Favorites" aria-label="Add Large Pizza to Favorites">
+                                <i class='bx bx-heart'></i>
+                            </button>
+                            <a href="order-form.html" class="btn-order-pill">
+                                <i class='bx bx-cart-alt'></i> Order Now
+                            </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Item Card 3: Sekh Kabab -->
-                <div class="item-card">
+                <!-- Item 3: Sekh Kabab -->
+                <div class="item-card" data-id="item-3">
                     <div class="item-card-header">
-                        <span class="badge-category">BBQ Grill</span>
+                        <span class="badge-category">Grill</span>
                         <span class="status-badge available">
                             <i class='bx bx-check'></i> In Stock
                         </span>
                     </div>
                     <div class="item-image-wrapper">
-                        <img src="images/sekh_kabak-removebg-preview.png" alt="Sekh Kabab">
+                        <img src="images/sekh_kabak-removebg-preview.png" alt="Sekh Kabab" onerror="this.src='images/fast-food.png'">
                     </div>
                     <div class="item-details">
                         <h3>Sekh Kabab</h3>
-                        <p>Charcoal-grilled spiced minced skewers served with aromatic mint sauce.</p>
+                        <p>Tender charcoal-grilled spiced meat skewers served with mint chutney.</p>
                     </div>
                     <div class="item-bottom">
                         <div class="item-price">$14.00</div>
                         <div class="item-actions">
-                            <button class="icon-btn fav-btn" onclick="this.classList.toggle('liked')" title="Add to Favorites"><i class='bx bx-heart'></i></button>
-                            <a href="order-form.html" class="btn-order-pill"><i class='bx bx-cart-alt'></i> Order Now</a>
+                            <button class="icon-btn fav-btn" onclick="handleFavoriteToggle(this, 'item-3')" title="Add to Favorites" aria-label="Add Sekh Kabab to Favorites">
+                                <i class='bx bx-heart'></i>
+                            </button>
+                            <a href="order-form.html" class="btn-order-pill">
+                                <i class='bx bx-cart-alt'></i> Order Now
+                            </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Item Card 4: Shawarma -->
-                <div class="item-card">
+                <!-- Item 4: Shawarma -->
+                <div class="item-card" data-id="item-4">
                     <div class="item-card-header">
-                        <span class="badge-category">Wraps</span>
+                        <span class="badge-category">Fast Food</span>
                         <span class="status-badge available">
                             <i class='bx bx-check'></i> In Stock
                         </span>
                     </div>
                     <div class="item-image-wrapper">
-                        <img src="images/shawarma-removebg-preview.png" alt="Shawarma">
+                        <img src="images/shawarma-removebg-preview.png" alt="Shawarma" onerror="this.src='images/fast-food.png'">
                     </div>
                     <div class="item-details">
                         <h3>Shawarma</h3>
-                        <p>Slow-roasted spiced chicken wrapped in flatbread with homemade garlic sauce.</p>
+                        <p>Flavorful wrapped spiced chicken with garlic sauce, veggies, and pickles.</p>
                     </div>
                     <div class="item-bottom">
-                        <div class="item-price">$10.00</div>
+                        <div class="item-price">$9.99</div>
                         <div class="item-actions">
-                            <button class="icon-btn fav-btn" onclick="this.classList.toggle('liked')" title="Add to Favorites"><i class='bx bx-heart'></i></button>
-                            <a href="order-form.html" class="btn-order-pill"><i class='bx bx-cart-alt'></i> Order Now</a>
+                            <button class="icon-btn fav-btn" onclick="handleFavoriteToggle(this, 'item-4')" title="Add to Favorites" aria-label="Add Shawarma to Favorites">
+                                <i class='bx bx-heart'></i>
+                            </button>
+                            <a href="order-form.html" class="btn-order-pill">
+                                <i class='bx bx-cart-alt'></i> Order Now
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="row-btn">
-            <a href="#" class="btn">All Products<i class='bx bxs-right-arrow'></i></a>
-        </div>
-       </section>
-       <!-- reviews -->
+
+            <div class="row-btn">
+                <a href="order-form.html" class="btn btn-primary">
+                    <i class='bx bx-shopping-bag'></i> View All Products &amp; Order
+                </a>
+            </div>
+        </section>
+
+        <!-- Customer Reviews Section -->
         <section class="review" id="review">
             <div class="middle-text">
-                <h4>Our Costomers</h4>
+                <span class="section-tag"><i class='bx bxs-quote-left'></i> Testimonials</span>
                 <h2>Clients Review About Our Food</h2>
+                <p>Read authentic feedback from food bloggers, local diners, and long-time regulars.</p>
             </div>
 
             <div class="review-content">
+                <!-- Review 1 -->
                 <div class="box">
-                    <p>The Teste is still in my mouth and I can feek of the taste of 
-                        the every ingr edients used int he food.I really Love Fafo.</p>
-                        <div class="in-text">
-                            <div class="bx-img">
-                                <img src="r1.jpg" alt="">
-                            </div>
-                            <div class="bxx-text">
-                                <h4>Aizaz Hussain</h4>
-                                <h5>Food vlogger</h5>
-                                <div class="ratings">
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                </div>
-                            </div>
+                    <div class="box-top-rating">
+                        <i class='bx bxs-quote-alt-left box-quote-icon'></i>
+                        <div class="ratings">
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
                         </div>
+                    </div>
+                    <p>"The blend of spices in the Sekh Kabab is extraordinary. I can genuinely feel the freshness and authentic charcoal aroma in every single bite!"</p>
+                    <div class="in-text">
+                        <div class="bx-img">
+                            <img src="r1.jpg" alt="Aizaz Hussain - Food Vlogger" onerror="this.src='images/awias.png'">
+                        </div>
+                        <div class="bxx-text">
+                            <h4>Aizaz Hussain</h4>
+                            <h5>Food Vlogger</h5>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Review 2 -->
                 <div class="box">
-                    <p>The Teste is still in my mouth and I can feek of the taste of 
-                        the every ingr edients used int he food.I really Love Fafo.</p>
-                        <div class="in-text">
-                            <div class="bx-img">
-                                <img src="images/sami.png" alt="">
-                            </div>
-                            <div class="bxx-text">
-                                <h4>Sami ullah</h4>
-                                <h5>Food vlogger</h5>
-                                <div class="ratings">
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                </div>
-                            </div>
+                    <div class="box-top-rating">
+                        <i class='bx bxs-quote-alt-left box-quote-icon'></i>
+                        <div class="ratings">
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
                         </div>
+                    </div>
+                    <p>"Hands down the best burger and pizza in Swabi! Crust is crispy outside, fluffy inside, and the packaging kept it steaming hot upon arrival."</p>
+                    <div class="in-text">
+                        <div class="bx-img">
+                            <img src="images/sami.png" alt="Sami Ullah - Food Critic" onerror="this.src='images/awias.png'">
+                        </div>
+                        <div class="bxx-text">
+                            <h4>Sami Ullah</h4>
+                            <h5>Food Critic</h5>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Review 3 -->
                 <div class="box">
-                    <p>The Teste is still in my mouth and I can feek of the taste of 
-                        the every ingr edients used int he food.I really Love Fafo.</p>
-                        <div class="in-text">
-                            <div class="bx-img">
-                                <img src="images/awias.png" alt="">
-                            </div>
-                            <div class="bxx-text">
-                                <h4>Awis Khan</h4>
-                                <h5>Food vlogger</h5>
-                                <div class="ratings">
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                    <a href="#"><i class='bx bxs-star'></i></a>
-                                </div>
-                            </div>
+                    <div class="box-top-rating">
+                        <i class='bx bxs-quote-alt-left box-quote-icon'></i>
+                        <div class="ratings">
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
+                            <i class='bx bxs-star'></i>
                         </div>
+                    </div>
+                    <p>"The shawarma garlic sauce is pure perfection. Friendly staff, ultra-clean environment, and top-tier taste every single visit!"</p>
+                    <div class="in-text">
+                        <div class="bx-img">
+                            <img src="images/awias.png" alt="Awis Khan - Food Enthusiast" onerror="this.src='images/sami.png'">
+                        </div>
+                        <div class="bxx-text">
+                            <h4>Awis Khan</h4>
+                            <h5>Food Enthusiast</h5>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
-        <!-- contact -->
-         <section class="contact" id="contact">
+
+        <!-- Contact Section -->
+        <section class="contact" id="contact">
             <div class="contact-content">
                 <div class="contact-img">
                     <div class="c-one">
-                        <img src="images/f1.png" alt="">
+                        <img src="images/f1.png" alt="Delicious grilled dishes" onerror="this.src='images/fast-food.png'">
                     </div>
                     <div class="c-one">
-                        <img src="images/f2.png" alt="">
+                        <img src="images/f2.png" alt="Fresh artisan pizza" onerror="this.src='images/fast-food.png'">
                     </div>
                 </div>
 
                 <div class="contact-text">
+                    <span class="section-tag"><i class='bx bx-map-pin'></i> Get In Touch</span>
                     <h2>Contact Us</h2>
-                    <p>Over its history as a food, the main uses of honey are in cooking,
-                        baking, dessert, as a spread on bread, as an addition to various beverages 
-                        such as tea, and as a sweetener in some commercial beverage.
-                    </p>
+                    <p>Over its history as a premier food spot, Hotel Springs welcomes you with open arms. Enjoy dine-in comfort, take away your favorites, or order online for prompt contactless doorstep delivery.</p>
+                    
                     <div class="social">
-                        <a href="https://www.google.com/" class="clr"><i class='bx bxl-google' ></i></a>
-                        <a href="https://www.facebook.com/"><i class='bx bxl-facebook-circle'></i></a>
-                        <a href="https://www.instagram.com/"><i class='bx bxl-instagram-alt' ></i></a>
-                        <a href="https://www.twitter.com/"><i class='bx bxl-twitter' ></i></a>
-                        <a href="https://www.github.com/Farhan-Tazir/"><i class='bx bxl-github' ></i></a>
+                        <a href="https://www.google.com/" class="clr" target="_blank" rel="noopener" aria-label="Google">
+                            <i class='bx bxl-google'></i>
+                        </a>
+                        <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook">
+                            <i class='bx bxl-facebook-circle'></i>
+                        </a>
+                        <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram">
+                            <i class='bx bxl-instagram-alt'></i>
+                        </a>
+                        <a href="https://www.twitter.com/" target="_blank" rel="noopener" aria-label="Twitter">
+                            <i class='bx bxl-twitter'></i>
+                        </a>
+                        <a href="https://www.github.com/Farhan-Tazir/" target="_blank" rel="noopener" aria-label="GitHub">
+                            <i class='bx bxl-github'></i>
+                        </a>
                     </div>
-
                 </div>
+
                 <div class="details">
                     <div class="main-d">
-                        <a href="#"><i class='bx bxs-location-plus' ></i>Hikmat khan Banda, Swabi, KPK</a>
+                        <a href="https://maps.google.com/?q=Swabi+KPK" target="_blank" rel="noopener">
+                            <i class='bx bxs-location-plus'></i>
+                            <span>Hikmat khan Banda, Swabi, KPK</span>
+                        </a>
                     </div>
 
                     <div class="main-d">
-                        <a href="#"><i class='bx bx-mobile-alt' ></i>+92 310 3546086</a>
+                        <a href="tel:+923103546086">
+                            <i class='bx bx-mobile-alt'></i>
+                            <span>+92 310 3546086</span>
+                        </a>
                     </div>
 
                     <div class="main-d">
-                        <a href="#"><i class='bx bxl-youtube' ></i>Farhan Tazir</a>
+                        <a href="https://www.youtube.com" target="_blank" rel="noopener">
+                            <i class='bx bxl-youtube'></i>
+                            <span>Farhan Tazir</span>
+                        </a>
                     </div>
 
                     <div class="main-d">
-                        <a href="#"><i class='bx bxs-bell' ></i>Subscribe</a>
+                        <a href="order-form.html">
+                            <i class='bx bxs-bell'></i>
+                            <span>Order Online</span>
+                        </a>
                     </div>
                 </div>
             </div>
+        </section>
+    </main>
 
-         </section>
+    <!-- Professional Footer -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-logo">
+                <i class='bx bx-bowl-hot'></i> Hotel Springs
+            </div>
+            <div class="footer-links">
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#shop">Menu</a>
+                <a href="order-form.html">Order Online</a>
+                <a href="user-dashboard.html">My Dashboard</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <div class="footer-copy">
+                &copy; 2026 Hotel Springs Restaurant. Managed by Farhan Tazir. All Rights Reserved.
+            </div>
+        </div>
+    </footer>
 
-         <!-- scroll top -->
-         <a href="#" class="scroll">
-            <i class='bx bx-up-arrow-alt' ></i>
-         </a>
+    <!-- Back to Top Floating Button -->
+    <div class="scroll" id="scrollTopBtn">
+        <a href="#home" aria-label="Scroll to top of page">
+            <i class='bx bx-up-arrow-alt'></i>
+        </a>
+    </div>
 
-         <script src="https://unpkg.com/scrollreveal"></script>
-       <!-- link to js -->
+    <!-- ScrollReveal CDN -->
+    <script src="https://unpkg.com/scrollreveal"></script>
+    
+    <!-- Application Stores & Main Page Scripts -->
     <script src="items-store.js"></script>
     <script src="script.js"></script>
 

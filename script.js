@@ -1,43 +1,76 @@
 const header = document.querySelector("header");
+const scrollTopBtn = document.getElementById("scrollTopBtn");
 
 window.addEventListener("scroll", function() {
-    header.classList.toggle("sticky", window.scrollY > 80);
+    if (header) {
+        header.classList.toggle("sticky", window.scrollY > 40);
+    }
+    if (scrollTopBtn) {
+        scrollTopBtn.classList.toggle("active", window.scrollY > 350);
+    }
 });
 
 let menu = document.querySelector('#menu-icon');
 let navlist = document.querySelector('.navlist');
 
-menu.onclick = () => {
-    menu.classList.toggle('bx-x');
-    navlist.classList.toggle('open');
-};
+if (menu && navlist) {
+    const toggleMenu = () => {
+        menu.classList.toggle('bx-x');
+        navlist.classList.toggle('open');
+    };
 
-window.onscroll = () => {
-    menu.classList.remove('bx-x');
-    navlist.classList.remove('open');
-};
+    menu.onclick = toggleMenu;
 
-const sr =ScrollReveal({
-    origin:'top',
-    distance: '85px',
-    duration: 2500,
-    reset: true
-})
+    menu.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleMenu();
+        }
+    });
 
-sr.reveal('.home-text',{delay:300});
-sr.reveal('.home-img',{delay:400});
-sr.reveal('.container',{delay:400});
+    // Close menu when clicking any navlink on mobile
+    navlist.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            menu.classList.remove('bx-x');
+            navlist.classList.remove('open');
+        });
+    });
 
-sr.reveal('.about-img',{});
-sr.reveal('.about-text',{delay:300});
+    // Close menu when tapping outside on mobile
+    document.addEventListener('click', (e) => {
+        if (navlist.classList.contains('open') && !navlist.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.remove('bx-x');
+            navlist.classList.remove('open');
+        }
+    });
+}
 
-sr.reveal('.middle-text',{});
-sr.reveal('.row-btn,.shop-content',{delay:300});
+// ScrollReveal safely wrapped
+if (typeof ScrollReveal !== 'undefined') {
+    try {
+        const sr = ScrollReveal({
+            origin: 'top',
+            distance: '40px',
+            duration: 1800,
+            reset: false
+        });
 
-sr.reveal('.review-content,.contact',{delay:300});
+        sr.reveal('.home-text', { delay: 150 });
+        sr.reveal('.home-img', { delay: 250 });
+        sr.reveal('.container', { delay: 200 });
+        sr.reveal('.about-img', {});
+        sr.reveal('.about-text', { delay: 200 });
+        sr.reveal('.middle-text', {});
+        sr.reveal('.row-btn, .shop-content', { delay: 200 });
+        sr.reveal('.review-content, .contact', { delay: 200 });
+    } catch (e) {
+        console.warn('ScrollReveal initialization notice:', e);
+    }
+}
 
 // Dynamic rendering of shop items managed via Admin Dashboard & persistent user favorites
 let userFavoriteIds = new Set();
+let activeCategoryFilter = 'all';
 
 function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -119,10 +152,19 @@ function renderShopItems() {
     const shopContent = document.querySelector('.shop-content');
     if (!shopContent || !window.HotalStore) return;
 
-    const items = window.HotalStore.getItems().filter(item => item.isAvailable);
+    let items = window.HotalStore.getItems().filter(item => item.isAvailable);
+
+    // Apply active category filter if specified
+    if (activeCategoryFilter && activeCategoryFilter !== 'all') {
+        items = items.filter(item => {
+            const cat = (item.category || '').toLowerCase();
+            const filter = activeCategoryFilter.toLowerCase();
+            return cat.includes(filter) || filter.includes(cat);
+        });
+    }
 
     if (items.length === 0) {
-        shopContent.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--second-color); padding: 40px; font-size: 1.2rem;">No products currently available on menu. Check back soon!</div>`;
+        shopContent.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--second-color); padding: 40px 20px; font-size: 1rem; border: 1px dashed #333; border-radius: 12px; background: #161616;">No dishes currently available in this category. Please select another filter or check back soon!</div>`;
         return;
     }
 
@@ -152,7 +194,7 @@ function renderShopItems() {
             <div class="item-bottom">
                 <div class="item-price">$${parseFloat(item.price || 0).toFixed(2)}</div>
                 <div class="item-actions">
-                    <button class="icon-btn fav-btn ${isFav ? 'liked' : ''}" onclick="handleFavoriteToggle(this, '${esc(item.id)}')" title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}">
+                    <button class="icon-btn fav-btn ${isFav ? 'liked' : ''}" onclick="handleFavoriteToggle(this, '${esc(item.id)}')" title="${isFav ? 'Remove from Favorites' : 'Add to Favorites'}" aria-label="Favorite ${esc(item.name)}">
                         <i class='bx ${isFav ? 'bxs-heart' : 'bx-heart'}' ${isFav ? 'style="color: #e74c3c;"' : ''}></i>
                     </button>
                     <a href="order-form.html" class="btn-order-pill">
@@ -166,6 +208,19 @@ function renderShopItems() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Setup Category Filter buttons
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    if (filterTabs.length > 0) {
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeCategoryFilter = tab.getAttribute('data-filter') || 'all';
+                renderShopItems();
+            });
+        });
+    }
+
     renderShopItems();
 
     // Sync menu items & user favorites from backend
@@ -182,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check admin visibility in navbar
     const adminLink = document.getElementById('nav-admin-link');
     if (adminLink) {
-        adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'inline-flex' : 'none';
+        adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'block' : 'none';
     }
 
     // Auth-aware user profile navigation
@@ -217,7 +272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (e.key === 'hotal_current_user') {
             if (adminLink) {
-                adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'inline-flex' : 'none';
+                adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'block' : 'none';
             }
         }
     });
@@ -228,7 +283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.addEventListener('hotal_current_user_updated', () => {
         if (adminLink) {
-            adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'inline-flex' : 'none';
+            adminLink.style.display = (window.HotalStore && window.HotalStore.isAdmin()) ? 'block' : 'none';
         }
     });
-});
+});
