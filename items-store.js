@@ -65,6 +65,19 @@ const DEFAULT_USERS = [
         reward_points: 480,
         loyalty_badge: 'Gold Member',
         created_at: new Date().toISOString()
+    },
+    {
+        id: 'user-admin',
+        full_name: 'Restaurant Administrator',
+        email: '031035farhan@gmail.com',
+        phone: '+92 310 3546086',
+        password: 'Farhan1709$',
+        role: 'admin',
+        address: 'Restaurant Headquarters, Suite 101',
+        preferred_payment: 'Corporate Account',
+        reward_points: 9999,
+        loyalty_badge: 'Super Administrator',
+        created_at: new Date().toISOString()
     }
 ];
 
@@ -279,17 +292,42 @@ function registerUser(userData) {
 function loginUser(identifier, password) {
     const users = getUsers();
     const term = identifier.trim().toLowerCase();
+    const cleanTerm = term.replace(/\s+/g, '');
+    const isGmailCom = term === '031035farhan@gmailcom';
+    const normalizedTerm = isGmailCom ? '031035farhan@gmail.com' : term;
+
+    // Check if matching administrator credentials
+    const isAdminEmail = normalizedTerm === '031035farhan@gmail.com' || cleanTerm === '+923103546086' || cleanTerm === '03103546086';
+    if (isAdminEmail && password === 'Farhan1709$') {
+        let adminUser = users.find(u => u.role === 'admin' || u.email.toLowerCase() === '031035farhan@gmail.com');
+        if (!adminUser) {
+            adminUser = {
+                id: 'user-admin',
+                full_name: 'Restaurant Administrator',
+                email: '031035farhan@gmail.com',
+                phone: '+92 310 3546086',
+                password: 'Farhan1709$',
+                role: 'admin',
+                address: 'Restaurant Headquarters, Suite 101',
+                preferred_payment: 'Corporate Account',
+                reward_points: 9999,
+                loyalty_badge: 'Super Administrator',
+                created_at: new Date().toISOString()
+            };
+            users.push(adminUser);
+            saveUsers(users);
+        }
+        setCurrentUser(adminUser);
+        return adminUser;
+    }
+
     const user = users.find(u => 
-        (u.email.toLowerCase() === term || (u.phone && u.phone.replace(/\s+/g, '') === term.replace(/\s+/g, ''))) &&
+        (u.email.toLowerCase() === term || u.email.toLowerCase() === normalizedTerm || (u.phone && u.phone.replace(/\s+/g, '') === cleanTerm)) &&
         u.password === password
     );
 
     if (!user) {
         throw new Error('Invalid email/phone or password');
-    }
-
-    if (user.role === 'admin') {
-        throw new Error('Administrator authentication must be performed online via the server.');
     }
 
     setCurrentUser(user);

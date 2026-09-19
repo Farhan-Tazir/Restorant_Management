@@ -331,52 +331,66 @@ button:hover{
         let networkFailed = false;
 
         try {
-            // Attempt server API login
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: identifier, password: password })
-            });
+            let res = null;
+            let data = null;
 
-            const data = await res.json();
-            if (!res.ok || !data.success) {
+            try {
+                // Attempt server API login
+                res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: identifier, password: password })
+                });
+
+                const contentType = res.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await res.json();
+                }
+            } catch (networkErr) {
+                console.warn('API network error:', networkErr);
+            }
+
+            // 1. If server responded with JSON success
+            if (res && res.ok && data && data.success) {
+                const sessionUser = {
+                    ...data.user,
+                    token: data.token
+                };
+                window.HotalStore.setCurrentUser(sessionUser);
+
+                msgEl.className = "msg-status success";
+                msgEl.innerText = "Login successful! Welcome back...";
+
+                const destination = getRedirectDestination(sessionUser);
+                setTimeout(() => {
+                    window.location.href = destination;
+                }, 800);
+                return;
+            }
+
+            // 2. If server is active and explicitly rejected credentials
+            if (res && (res.status === 401 || res.status === 400 || res.status === 429)) {
                 msgEl.className = "msg-status error";
-                msgEl.innerText = data.message || 'Invalid email/phone or password';
+                msgEl.innerText = (data && data.message) || 'Invalid email/phone or password';
                 btn.disabled = false;
                 return;
             }
 
-            // Sync user session locally including server-issued signed token
-            const sessionUser = {
-                ...data.user,
-                token: data.token
-            };
-            window.HotalStore.setCurrentUser(sessionUser);
-
+            // 3. If server endpoint is not configured (e.g. 404/405 on static hosting) or network failure:
+            // Fall back to local authentication store
+            const user = window.HotalStore.loginUser(identifier, password);
             msgEl.className = "msg-status success";
-            msgEl.innerText = "Login successful! Welcome back...";
+            msgEl.innerText = `Welcome back, ${user.full_name ? user.full_name.split(' ')[0] : 'User'}!`;
 
-            const destination = getRedirectDestination(sessionUser);
+            const destination = getRedirectDestination(user);
             setTimeout(() => {
                 window.location.href = destination;
             }, 800);
 
-        } catch (err) {
-            // Network fetch failure: Only offline fallback for regular customers
-            try {
-                const user = window.HotalStore.loginUser(identifier, password);
-                msgEl.className = "msg-status success";
-                msgEl.innerText = `Welcome back, ${user.full_name ? user.full_name.split(' ')[0] : 'User'}!`;
-
-                const destination = getRedirectDestination(user);
-                setTimeout(() => {
-                    window.location.href = destination;
-                }, 800);
-            } catch (localErr) {
-                msgEl.className = "msg-status error";
-                msgEl.innerText = localErr.message || "Unable to connect to server. Please try again.";
-                btn.disabled = false;
-            }
+        } catch (localErr) {
+            msgEl.className = "msg-status error";
+            msgEl.innerText = localErr.message || "Invalid email/phone or password";
+            btn.disabled = false;
         }
     });
     </script>

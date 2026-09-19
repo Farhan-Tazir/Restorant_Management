@@ -27,16 +27,8 @@ try {
     }
 } catch (_) {}
 
-// Security Hardening: Enforce required environment variables (no hardcoded fallback credentials)
-if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
-    throw new Error(
-        'Startup Error: Required environment variables ADMIN_EMAIL and ADMIN_PASSWORD are not set. ' +
-        'Please configure them in your .env file or deployment environment variables.'
-    );
-}
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL.toLowerCase().trim();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '031035farhan@gmail.com').toLowerCase().trim();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Farhan1709$';
 
 // In-Memory Fallback State (Simulates SQL database when DB server is not active)
 const inMemoryDatabase = {
