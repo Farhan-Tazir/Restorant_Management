@@ -521,7 +521,7 @@ function saveOrders(orders) {
 
 function addOrder(orderData) {
     const orders = getOrders();
-    const orderNum = 'HTL-' + Math.floor(1000 + Math.random() * 9000);
+    const orderNum = orderData.order_number || orderData.id || ('HTL-' + Math.floor(1000 + Math.random() * 9000));
     const newOrder = {
         id: orderNum,
         order_number: orderNum,

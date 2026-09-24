@@ -630,7 +630,30 @@ const UserDAO = {
                     [orderId, totalAmount, orderData.payment_method || 'cash', 'pending']
                 );
 
-                return this.getUserOrders(orderData.user_id || 1)[0];
+                const userOrders = await this.getUserOrders(orderData.user_id || 1);
+                let createdOrder = userOrders && userOrders.length ? userOrders[0] : null;
+                if (!createdOrder) {
+                    createdOrder = {
+                        id: orderId,
+                        order_number: orderNumber,
+                        user_id: orderData.user_id || 1,
+                        customer_name: orderData.customer_name || 'Customer',
+                        phone: orderData.phone || '',
+                        order_type: orderData.order_type || 'delivery',
+                        table_number: orderData.table_number || '',
+                        delivery_address: orderData.delivery_address || '',
+                        status: 'pending',
+                        payment_method: orderData.payment_method || 'Cash on Delivery',
+                        payment_status: 'pending',
+                        subtotal: subtotal,
+                        delivery_fee: deliveryFee,
+                        total_amount: totalAmount,
+                        created_at: new Date().toISOString(),
+                        items: orderData.items || []
+                    };
+                }
+                inMemoryDatabase.orders.unshift(createdOrder);
+                return createdOrder;
             } catch (e) {
                 console.error('SQL order error:', e);
             }

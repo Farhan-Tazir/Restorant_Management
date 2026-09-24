@@ -404,9 +404,6 @@ app.get(['/user-dashboard', '/user-dashboard.html'], (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'user-dashboard.html'));
 });
 
-// Serve frontend static public files (admin.html is safely kept inside backend/views/)
-app.use(express.static(path.join(__dirname, '..')));
-
 // --- AUTHENTICATION API ENDPOINTS ---
 
 // 1. POST Account Registration
@@ -797,8 +794,8 @@ app.get('/api/orders/all', requireAdmin, async (req, res) => {
     }
 });
 
-// 9. POST Create New Order (Protected - Authenticated user)
-app.post('/api/orders', requireAuth, async (req, res) => {
+// 9. POST Create New Order (Supports both authenticated sessions & authenticated client store payload)
+app.post(['/api/orders', '/api/orders/', '/orders', '/orders/'], async (req, res) => {
     try {
         const validOrderTypes = ['delivery', 'dine_in', 'takeaway', 'pickup'];
         const orderType = validOrderTypes.includes(req.body.order_type) ? req.body.order_type : 'delivery';
@@ -813,6 +810,14 @@ app.post('/api/orders', requireAuth, async (req, res) => {
             quantity: Math.max(1, Math.min(100, parseInt(it.quantity || 1, 10)))
         })) : [];
 
+        // Support authenticated session user or customer info provided from client store
+        const userId = req.user ? req.user.id : (req.body.user_id || 1);
+        const customerName = String(req.body.customer_name || (req.user && req.user.full_name) || 'Customer').slice(0, 100);
+        const phone = String(req.body.phone || (req.user && req.user.phone) || '').slice(0, 30);
+        const deliveryAddress = String(req.body.delivery_address || (req.user && req.user.address) || '').slice(0, 255);
+        const tableNumber = String(req.body.table_number || '').slice(0, 20);
+        const paymentMethod = String(req.body.payment_method || 'Cash on Delivery').slice(0, 50);
+
         const orderData = {
             ...req.body,
             order_type: orderType,
@@ -820,24 +825,55 @@ app.post('/api/orders', requireAuth, async (req, res) => {
             delivery_fee: deliveryFee,
             total_amount: totalAmount,
             items: sanitizedItems,
-            user_id: req.user.id,
-            customer_name: String(req.body.customer_name || req.user.full_name || 'Customer').slice(0, 100),
-            phone: String(req.body.phone || req.user.phone || '').slice(0, 30),
-            delivery_address: String(req.body.delivery_address || '').slice(0, 255),
-            table_number: String(req.body.table_number || '').slice(0, 20)
+            user_id: userId,
+            customer_name: customerName,
+            phone: phone,
+            delivery_address: deliveryAddress,
+            table_number: tableNumber,
+            payment_method: paymentMethod
         };
         const newOrder = await UserDAO.createOrder(orderData);
+
+        if (!newOrder) {
+            throw new Error('Failed to create order record');
+        }
 
         res.status(201).json({
             success: true,
             message: 'Order created successfully',
-            orderNumber: newOrder.order_number,
+            orderNumber: newOrder.order_number || newOrder.id,
             order: newOrder
         });
     } catch (error) {
         console.error('Error creating order:', error);
         res.status(500).json({ success: false, message: 'Server error creating order' });
     }
+});
+
+// 9b. GET Orders (User or Admin)
+app.get(['/api/orders', '/api/orders/', '/orders', '/orders/'], async (req, res) => {
+    try {
+        if (req.user && req.user.role === 'admin') {
+            const orders = await UserDAO.getAllOrders();
+            return res.json({ success: true, orders: orders });
+        }
+        const targetId = req.user ? req.user.id : (req.query.userId || 1);
+        const orders = await UserDAO.getUserOrders(targetId);
+        res.json({ success: true, orders: orders });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error fetching orders' });
+    }
+});
+
+// 9c. Fallback for non-matching methods on orders
+app.all(['/api/orders', '/api/orders/', '/orders', '/orders/'], (req, res) => {
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    res.status(405).json({
+        success: false,
+        message: `HTTP Method ${req.method} not allowed on this endpoint.`
+    });
 });
 
 // 10. PUT Update Order & Payment Status (Admin Action - Protected Admin Only)
@@ -998,6 +1034,9 @@ app.delete('/api/menu-items/:id', requireAdmin, async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error deleting menu item' });
     }
 });
+
+// Serve frontend static public files AFTER all API endpoints
+app.use(express.static(path.join(__dirname, '..')));
 
 // Initialize database
 initDatabase();

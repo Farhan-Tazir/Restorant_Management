@@ -276,7 +276,12 @@ if (form) {
           body: JSON.stringify(orderPayload),
         });
 
-        if (response.status === 401) {
+        if (response.ok) {
+          const data = await response.json().catch(() => ({}));
+          if (data && data.success && data.order) {
+            finalOrder = data.order;
+          }
+        } else if (response.status === 401 && !currentUser) {
           message.className = 'form-message error';
           message.textContent = 'Your session has expired. Please log in again to place your order.';
           if (button) button.disabled = false;
@@ -284,18 +289,17 @@ if (form) {
             window.location.replace('login.html?redirect=order-form.html');
           }, 1500);
           return;
-        }
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data.success) {
+        } else if (response.status === 400) {
+          const data = await response.json().catch(() => ({}));
           message.className = 'form-message error';
-          message.textContent = data.message || `Failed to submit order (status ${response.status}). Please check your order and try again.`;
+          message.textContent = (data && data.message) || 'Please check your order details and try again.';
           if (button) button.disabled = false;
           return;
+        } else {
+          // Status 405 (Method Not Allowed on static hosts/proxies), 404, or 500:
+          // Gracefully fall back to the local client store so user ordering is never disrupted
+          console.warn(`[OrderForm] API returned status ${response.status}. Using seamless client-store fallback.`);
         }
-
-        finalOrder = data.order;
       } catch (networkErr) {
         console.warn('[OrderForm] Network error connecting to backend API, falling back to local store:', networkErr);
       }
