@@ -30,6 +30,25 @@ body {
     color: var(--text-color);
     min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
+}
+
+/* Ambient Background Particles Canvas */
+#bg-particles-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.95;
+    display: block;
+}
+
+header, .page-shell {
+    position: relative;
+    z-index: 2;
 }
 
 /* Floating Background Food Images */

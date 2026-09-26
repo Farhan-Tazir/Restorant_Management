@@ -22,6 +22,9 @@
 </head>
 <body>
 
+    <!-- Ambient Background Particles Canvas -->
+    <canvas id="bg-particles-canvas" aria-hidden="true"></canvas>
+
     <!-- Header Navigation -->
     <header id="site-header">
         <a href="#home" class="logo" id="header-logo" aria-label="Hotel Springs Home">
@@ -489,6 +492,11 @@
             <div class="footer-copy">
                 &copy; 2026 Hotel Springs Restaurant. Managed by Farhan Tazir. All Rights Reserved.
             </div>
+            <div style="margin-top: 8px;">
+                <button type="button" class="particles-toggle-btn" aria-label="Toggle ambient particle effects" title="Toggle background ambient particle effects">
+                    <i class='bx bxs-magic-wand'></i> <span>Particles: On</span>
+                </button>
+            </div>
         </div>
     </footer>
 
@@ -505,6 +513,7 @@
     <!-- Application Stores & Main Page Scripts -->
     <script src="items-store.js"></script>
     <script src="script.js"></script>
+    <script src="particles.js"></script>
 
 </body>
 </html>
